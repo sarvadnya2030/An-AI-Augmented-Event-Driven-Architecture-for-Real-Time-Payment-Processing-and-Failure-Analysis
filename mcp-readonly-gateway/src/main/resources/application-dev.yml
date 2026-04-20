@@ -1,0 +1,11 @@
+spring:
+  kafka:
+    bootstrap-servers: localhost:29092
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: clearflow123
+clearflow:
+  elasticsearch:
+    url: http://localhost:9200

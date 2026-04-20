@@ -1,0 +1,55 @@
+server:
+  port: 8087
+
+spring:
+  application:
+    name: mcp-readonly-gateway
+  config:
+    import: optional:configserver:http://config-server:8888/
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: 6379
+      password: ${REDIS_PASSWORD:clearflow123}
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKERS:localhost:29092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+  ai:
+    mcp:
+      server:
+        name: clearflow-mcp-server
+        version: 1.0.0
+        type: SYNC
+        sse-message-endpoint: /mcp/message
+        sse-endpoint: /mcp/sse
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      chat:
+        model: ${OLLAMA_MODEL:qwen3.5:0.8b}
+        options:
+          temperature: 0.1
+
+clearflow:
+  elasticsearch:
+    url: ${ELASTICSEARCH_URL:http://localhost:9200}
+    index-pattern: clearflow-*
+    max-log-entries: 200
+  code-graph:
+    path: ${CODE_GRAPH_PATH:../graphify-out/graph.json}
+  llm:
+    provider: openrouter
+    ollama:
+      base-url: http://localhost:11434
+      model: qwen3.5:0.8b
+    openrouter:
+      base-url: https://openrouter.ai/api/v1
+      api-key: ${OPENROUTER_API_KEY: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}
+      model: meta-llama/llama-3.3-70b-instruct
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus,info

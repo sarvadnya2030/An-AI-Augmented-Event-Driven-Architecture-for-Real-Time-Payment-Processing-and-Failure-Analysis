@@ -1,0 +1,1118 @@
+{
+  "version": "1.0",
+  "extractedAt": "2026-04-16T18:33:16.183925Z",
+  "brokers": {
+    "kafka": {
+      "bootstrapServers": "kafka:9092",
+      "topics": {
+        "clearflow.payment.initiated": {
+          "purpose": "Payment submitted by client \u2014 triggers fraud scoring and audit fan-out",
+          "isDLQ": false,
+          "isSagaTrigger": false,
+          "producers": [
+            {
+              "service": "gateway",
+              "class": "KafkaEventPublisher",
+              "file": "gateway/src/main/java/com/clearflow/gateway/messaging/KafkaEventPublisher.java"
+            }
+          ],
+          "consumers": [
+            {
+              "service": "fraud-scoring",
+              "class": "FraudKafkaConsumer",
+              "file": "fraud-scoring/src/main/java/com/clearflow/fraud/messaging/FraudKafkaConsumer.java"
+            },
+            {
+              "service": "audit",
+              "class": "AuditEventConsumer",
+              "file": "audit/src/main/java/com/clearflow/audit/messaging/AuditEventConsumer.java"
+            },
+            {
+              "service": "gateway",
+              "class": "PaymentStatusKafkaConsumer",
+              "file": "gateway/src/main/java/com/clearflow/gateway/status/PaymentStatusKafkaConsumer.java"
+            }
+          ],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        },
+        "clearflow.fraud.evaluated": {
+          "purpose": "Fraud risk score and band published after ML evaluation",
+          "isDLQ": false,
+          "isSagaTrigger": false,
+          "producers": [
+            {
+              "service": "fraud-scoring",
+              "class": "FraudKafkaConsumer",
+              "file": "fraud-scoring/src/main/java/com/clearflow/fraud/messaging/FraudKafkaConsumer.java"
+            }
+          ],
+          "consumers": [
+            {
+              "service": "audit",
+              "class": "AuditEventConsumer",
+              "file": "audit/src/main/java/com/clearflow/audit/messaging/AuditEventConsumer.java"
+            }
+          ],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        },
+        "clearflow.payment.blocked": {
+          "purpose": "Payment blocked by fraud engine (CRITICAL risk band) \u2014 no further processing",
+          "isDLQ": false,
+          "isSagaTrigger": false,
+          "producers": [
+            {
+              "service": "fraud-scoring",
+              "class": "FraudKafkaConsumer",
+              "file": "fraud-scoring/src/main/java/com/clearflow/fraud/messaging/FraudKafkaConsumer.java"
+            }
+          ],
+          "consumers": [
+            {
+              "service": "audit",
+              "class": "AuditEventConsumer",
+              "file": "audit/src/main/java/com/clearflow/audit/messaging/AuditEventConsumer.java"
+            },
+            {
+              "service": "gateway",
+              "class": "PaymentStatusKafkaConsumer",
+              "file": "gateway/src/main/java/com/clearflow/gateway/status/PaymentStatusKafkaConsumer.java"
+            }
+          ],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        },
+        "clearflow.payment.validated": {
+          "purpose": "Payment passed schema/IBAN/BIC validation and enrichment",
+          "isDLQ": false,
+          "isSagaTrigger": false,
+          "producers": [
+            {
+              "service": "validation-enrichment",
+              "class": "ValidationEnrichmentCamelRoute",
+              "file": "validation-enrichment/src/main/java/com/clearflow/validation/camel/ValidationEnrichmentCamelRoute.java"
+            }
+          ],
+          "consumers": [
+            {
+              "service": "audit",
+              "class": "AuditEventConsumer",
+              "file": "audit/src/main/java/com/clearflow/audit/messaging/AuditEventConsumer.java"
+            },
+            {
+              "service": "gateway",
+              "class": "PaymentStatusKafkaConsumer",
+              "file": "gateway/src/main/java/com/clearflow/gateway/status/PaymentStatusKafkaConsumer.java"
+            }
+          ],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        },
+        "clearflow.payment.rejected": {
+          "purpose": "Payment failed validation (invalid IBAN, BIC, schema, or amount) \u2014 terminal",
+          "isDLQ": false,
+          "isSagaTrigger": false,
+          "producers": [
+            {
+              "service": "validation-enrichment",
+              "class": "ValidationEnrichmentCamelRoute",
+              "file": "validation-enrichment/src/main/java/com/clearflow/validation/camel/ValidationEnrichmentCamelRoute.java"
+            }
+          ],
+          "consumers": [
+            {
+              "service": "audit",
+              "class": "AuditEventConsumer",
+              "file": "audit/src/main/java/com/clearflow/audit/messaging/AuditEventConsumer.java"
+            },
+            {
+              "service": "gateway",
+              "class": "PaymentStatusKafkaConsumer",
+              "file": "gateway/src/main/java/com/clearflow/gateway/status/PaymentStatusKafkaConsumer.java"
+            }
+          ],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        },
+        "clearflow.aml.sanctions.hit": {
+          "purpose": "AML screening matched OFAC/SDN/PEP list \u2014 payment held for compliance review",
+          "isDLQ": false,
+          "isSagaTrigger": false,
+          "producers": [
+            {
+              "service": "aml-compliance",
+              "class": "AMLCamelRoute",
+              "file": "aml-compliance/src/main/java/com/clearflow/compliance/camel/AMLCamelRoute.java"
+            }
+          ],
+          "consumers": [
+            {
+              "service": "audit",
+              "class": "AuditEventConsumer",
+              "file": "audit/src/main/java/com/clearflow/audit/messaging/AuditEventConsumer.java"
+            },
+            {
+              "service": "gateway",
+              "class": "PaymentStatusKafkaConsumer",
+              "file": "gateway/src/main/java/com/clearflow/gateway/status/PaymentStatusKafkaConsumer.java"
+            }
+          ],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        },
+        "clearflow.aml.sanctions.clear": {
+          "purpose": "AML screening passed \u2014 payment cleared for routing and execution",
+          "isDLQ": false,
+          "isSagaTrigger": false,
+          "producers": [
+            {
+              "service": "aml-compliance",
+              "class": "AMLCamelRoute",
+              "file": "aml-compliance/src/main/java/com/clearflow/compliance/camel/AMLCamelRoute.java"
+            }
+          ],
+          "consumers": [
+            {
+              "service": "audit",
+              "class": "AuditEventConsumer",
+              "file": "audit/src/main/java/com/clearflow/audit/messaging/AuditEventConsumer.java"
+            },
+            {
+              "service": "gateway",
+              "class": "PaymentStatusKafkaConsumer",
+              "file": "gateway/src/main/java/com/clearflow/gateway/status/PaymentStatusKafkaConsumer.java"
+            }
+          ],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        },
+        "clearflow.compliance.alerts": {
+          "purpose": "High-priority compliance alert (embargo country, sanctions, PEP) for operations team",
+          "isDLQ": false,
+          "isSagaTrigger": false,
+          "producers": [
+            {
+              "service": "aml-compliance",
+              "class": "AMLCamelRoute",
+              "file": "aml-compliance/src/main/java/com/clearflow/compliance/camel/AMLCamelRoute.java"
+            }
+          ],
+          "consumers": [
+            {
+              "service": "audit",
+              "class": "AuditEventConsumer",
+              "file": "audit/src/main/java/com/clearflow/audit/messaging/AuditEventConsumer.java"
+            }
+          ],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        },
+        "clearflow.payment.routed": {
+          "purpose": "Payment assigned to rail (SWIFT/SEPA/TARGET2/RTP) and execution confirmed",
+          "isDLQ": false,
+          "isSagaTrigger": false,
+          "producers": [
+            {
+              "service": "routing-execution",
+              "class": "RoutingCamelRoute",
+              "file": "routing-execution/src/main/java/com/clearflow/routing/camel/RoutingCamelRoute.java"
+            }
+          ],
+          "consumers": [
+            {
+              "service": "audit",
+              "class": "AuditEventConsumer",
+              "file": "audit/src/main/java/com/clearflow/audit/messaging/AuditEventConsumer.java"
+            },
+            {
+              "service": "gateway",
+              "class": "PaymentStatusKafkaConsumer",
+              "file": "gateway/src/main/java/com/clearflow/gateway/status/PaymentStatusKafkaConsumer.java"
+            }
+          ],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        },
+        "clearflow.payment.failed": {
+          "purpose": "Routing or execution failed (liquidity, rail unavailable, timeout) \u2014 saga may trigger",
+          "isDLQ": false,
+          "isSagaTrigger": false,
+          "producers": [
+            {
+              "service": "routing-execution",
+              "class": "RoutingCamelRoute",
+              "file": "routing-execution/src/main/java/com/clearflow/routing/camel/RoutingCamelRoute.java"
+            }
+          ],
+          "consumers": [
+            {
+              "service": "audit",
+              "class": "AuditEventConsumer",
+              "file": "audit/src/main/java/com/clearflow/audit/messaging/AuditEventConsumer.java"
+            },
+            {
+              "service": "gateway",
+              "class": "PaymentStatusKafkaConsumer",
+              "file": "gateway/src/main/java/com/clearflow/gateway/status/PaymentStatusKafkaConsumer.java"
+            }
+          ],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        },
+        "clearflow.payment.settled": {
+          "purpose": "Payment fully settled \u2014 funds confirmed in nostro account",
+          "isDLQ": false,
+          "isSagaTrigger": false,
+          "producers": [
+            {
+              "service": "settlement",
+              "class": "SettlementCamelRoute",
+              "file": "settlement/src/main/java/com/clearflow/settlement/camel/SettlementCamelRoute.java"
+            }
+          ],
+          "consumers": [
+            {
+              "service": "audit",
+              "class": "AuditEventConsumer",
+              "file": "audit/src/main/java/com/clearflow/audit/messaging/AuditEventConsumer.java"
+            },
+            {
+              "service": "gateway",
+              "class": "PaymentStatusKafkaConsumer",
+              "file": "gateway/src/main/java/com/clearflow/gateway/status/PaymentStatusKafkaConsumer.java"
+            }
+          ],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        },
+        "clearflow.analytics.settlement": {
+          "purpose": "Settlement analytics event for external data warehouse / reporting pipeline",
+          "isDLQ": false,
+          "isSagaTrigger": false,
+          "producers": [
+            {
+              "service": "settlement",
+              "class": "SettlementCamelRoute",
+              "file": "settlement/src/main/java/com/clearflow/settlement/camel/SettlementCamelRoute.java"
+            }
+          ],
+          "consumers": [],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        },
+        "clearflow.mcp.access.log": {
+          "purpose": "MCP read-only gateway access log for audit trail of AI tool queries",
+          "isDLQ": false,
+          "isSagaTrigger": false,
+          "producers": [
+            {
+              "service": "mcp-readonly-gateway",
+              "class": "AccessLogService",
+              "file": "mcp-readonly-gateway/src/main/java/com/clearflow/mcp/service/AccessLogService.java"
+            }
+          ],
+          "consumers": [
+            {
+              "service": "audit",
+              "class": "AuditEventConsumer",
+              "file": "audit/src/main/java/com/clearflow/audit/messaging/AuditEventConsumer.java"
+            }
+          ],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        },
+        "clearflow.payment.dlq": {
+          "purpose": "Dead letter queue for undeliverable payment Kafka messages after max retries",
+          "isDLQ": true,
+          "isSagaTrigger": false,
+          "producers": [],
+          "consumers": [],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        },
+        "clearflow.fraud.dlq": {
+          "purpose": "Dead letter queue for undeliverable fraud evaluation Kafka messages after max retries",
+          "isDLQ": true,
+          "isSagaTrigger": false,
+          "producers": [],
+          "consumers": [],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        },
+        "clearflow.payment.settlement.failed": {
+          "purpose": "Settlement failed after nostro debit \u2014 triggers saga compensation to reverse routing/AML/fraud holds",
+          "isDLQ": false,
+          "isSagaTrigger": true,
+          "producers": [
+            {
+              "service": "settlement",
+              "class": "SettlementCamelRoute",
+              "file": "settlement/src/main/java/com/clearflow/settlement/camel/SettlementCamelRoute.java"
+            }
+          ],
+          "consumers": [
+            {
+              "service": "routing-execution",
+              "class": "SagaCompensationRoute",
+              "file": "routing-execution/src/main/java/com/clearflow/routing/camel/SagaCompensationRoute.java"
+            }
+          ],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        },
+        "clearflow.payment.compensated": {
+          "purpose": "Saga compensation complete \u2014 all distributed holds released, payment fully reversed",
+          "isDLQ": false,
+          "isSagaTrigger": false,
+          "producers": [
+            {
+              "service": "routing-execution",
+              "class": "SagaCompensationRoute",
+              "file": "routing-execution/src/main/java/com/clearflow/routing/camel/SagaCompensationRoute.java"
+            }
+          ],
+          "consumers": [
+            {
+              "service": "audit",
+              "class": "AuditEventConsumer",
+              "file": "audit/src/main/java/com/clearflow/audit/messaging/AuditEventConsumer.java"
+            }
+          ],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        }
+      }
+    },
+    "activemq": {
+      "brokerUrl": "tcp://activemq:61616",
+      "queues": {
+        "CLEARFLOW.PAYMENT.INITIATED": {
+          "purpose": "Orchestration backbone \u2014 gateway posts initiated payment, validation-enrichment picks up for Camel pipeline",
+          "isDLQ": false,
+          "producers": [
+            {
+              "service": "gateway",
+              "class": "ActiveMQPublisher",
+              "file": "gateway/src/main/java/com/clearflow/gateway/messaging/ActiveMQPublisher.java"
+            }
+          ],
+          "consumers": [
+            {
+              "service": "validation-enrichment",
+              "class": "ValidationEnrichmentCamelRoute",
+              "file": "validation-enrichment/src/main/java/com/clearflow/validation/camel/ValidationEnrichmentCamelRoute.java"
+            }
+          ],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        },
+        "CLEARFLOW.PAYMENT.VALIDATED": {
+          "purpose": "Validated + enriched payment handed off to AML compliance screening",
+          "isDLQ": false,
+          "producers": [
+            {
+              "service": "validation-enrichment",
+              "class": "ValidationEnrichmentCamelRoute",
+              "file": "validation-enrichment/src/main/java/com/clearflow/validation/camel/ValidationEnrichmentCamelRoute.java"
+            }
+          ],
+          "consumers": [
+            {
+              "service": "aml-compliance",
+              "class": "AMLCamelRoute",
+              "file": "aml-compliance/src/main/java/com/clearflow/compliance/camel/AMLCamelRoute.java"
+            }
+          ],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        },
+        "CLEARFLOW.PAYMENT.REJECTED": {
+          "purpose": "Validation-rejected payment \u2014 terminal queue, no active consumer (goes to DLQ audit trail)",
+          "isDLQ": false,
+          "producers": [
+            {
+              "service": "validation-enrichment",
+              "class": "ValidationEnrichmentCamelRoute",
+              "file": "validation-enrichment/src/main/java/com/clearflow/validation/camel/ValidationEnrichmentCamelRoute.java"
+            }
+          ],
+          "consumers": [],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        },
+        "CLEARFLOW.PAYMENT.SANCTIONS.HIT": {
+          "purpose": "Sanctions match \u2014 payment put on compliance hold, terminal queue awaiting manual review",
+          "isDLQ": false,
+          "producers": [
+            {
+              "service": "aml-compliance",
+              "class": "AMLCamelRoute",
+              "file": "aml-compliance/src/main/java/com/clearflow/compliance/camel/AMLCamelRoute.java"
+            }
+          ],
+          "consumers": [],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        },
+        "CLEARFLOW.PAYMENT.SANCTIONS.CLEAR": {
+          "purpose": "AML cleared \u2014 payment routed onward to routing-execution for rail selection",
+          "isDLQ": false,
+          "producers": [
+            {
+              "service": "aml-compliance",
+              "class": "AMLCamelRoute",
+              "file": "aml-compliance/src/main/java/com/clearflow/compliance/camel/AMLCamelRoute.java"
+            }
+          ],
+          "consumers": [
+            {
+              "service": "routing-execution",
+              "class": "RoutingCamelRoute",
+              "file": "routing-execution/src/main/java/com/clearflow/routing/camel/RoutingCamelRoute.java"
+            }
+          ],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        },
+        "CLEARFLOW.PAYMENT.ROUTED": {
+          "purpose": "Rail selected and execution confirmed \u2014 settlement service picks up for nostro debit",
+          "isDLQ": false,
+          "producers": [
+            {
+              "service": "routing-execution",
+              "class": "RoutingCamelRoute",
+              "file": "routing-execution/src/main/java/com/clearflow/routing/camel/RoutingCamelRoute.java"
+            }
+          ],
+          "consumers": [
+            {
+              "service": "settlement",
+              "class": "SettlementCamelRoute",
+              "file": "settlement/src/main/java/com/clearflow/settlement/camel/SettlementCamelRoute.java"
+            }
+          ],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        },
+        "CLEARFLOW.PAYMENT.SETTLED": {
+          "purpose": "Settlement confirmed \u2014 terminal queue, consumed by audit trail processor",
+          "isDLQ": false,
+          "producers": [
+            {
+              "service": "settlement",
+              "class": "SettlementCamelRoute",
+              "file": "settlement/src/main/java/com/clearflow/settlement/camel/SettlementCamelRoute.java"
+            }
+          ],
+          "consumers": [],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        },
+        "CLEARFLOW.PAYMENT.DLQ": {
+          "purpose": "Dead letter queue for all Camel pipeline failures \u2014 3 retries + exponential backoff exhausted",
+          "isDLQ": true,
+          "producers": [],
+          "consumers": [],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        },
+        "CLEARFLOW.PAYMENT.INSUFFICIENT.LIQUIDITY": {
+          "purpose": "Routing failed due to insufficient liquidity on selected rail \u2014 triggers manual intervention",
+          "isDLQ": false,
+          "producers": [
+            {
+              "service": "routing-execution",
+              "class": "RoutingCamelRoute",
+              "file": "routing-execution/src/main/java/com/clearflow/routing/camel/RoutingCamelRoute.java"
+            }
+          ],
+          "consumers": [],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        },
+        "CLEARFLOW.PAYMENT.SETTLEMENT.FAILED": {
+          "purpose": "Settlement failure after nostro debit \u2014 consumed by SagaCompensationRoute to orchestrate distributed rollback",
+          "isDLQ": false,
+          "producers": [
+            {
+              "service": "settlement",
+              "class": "SettlementCamelRoute",
+              "file": "settlement/src/main/java/com/clearflow/settlement/camel/SettlementCamelRoute.java"
+            }
+          ],
+          "consumers": [
+            {
+              "service": "routing-execution",
+              "class": "SagaCompensationRoute",
+              "file": "routing-execution/src/main/java/com/clearflow/routing/camel/SagaCompensationRoute.java"
+            }
+          ],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        },
+        "CLEARFLOW.PAYMENT.COMPENSATED": {
+          "purpose": "Saga compensation complete \u2014 produced by SagaCompensationRoute, marks end of distributed rollback",
+          "isDLQ": false,
+          "producers": [
+            {
+              "service": "routing-execution",
+              "class": "SagaCompensationRoute",
+              "file": "routing-execution/src/main/java/com/clearflow/routing/camel/SagaCompensationRoute.java"
+            }
+          ],
+          "consumers": [],
+          "sourceValidation": {
+            "producerHits": [],
+            "consumerHits": []
+          }
+        }
+      }
+    },
+    "solace": {
+      "topics": {
+        "clearflow/payments/initiated/{currency}/{country}": {
+          "purpose": "Dynamic Solace hierarchical routing for regional payment handling \u2014 currency and country are substituted at runtime for selective consumer matching",
+          "producers": [
+            {
+              "service": "gateway",
+              "class": "SolacePublisher",
+              "file": "gateway/src/main/java/com/clearflow/gateway/messaging/SolacePublisher.java"
+            }
+          ],
+          "consumers": []
+        }
+      }
+    }
+  },
+  "pipelineFlow": [
+    {
+      "step": 1,
+      "service": "gateway",
+      "action": "Receive ISO-20022 payment instruction from client",
+      "produces": "clearflow.payment.initiated (Kafka) + CLEARFLOW.PAYMENT.INITIATED (ActiveMQ) + clearflow/payments/initiated/{currency}/{country} (Solace)",
+      "via": "KafkaEventPublisher + ActiveMQPublisher + SolacePublisher",
+      "circuitBreakers": [
+        "KAFKA",
+        "ACTIVEMQ",
+        "SOLACE"
+      ]
+    },
+    {
+      "step": 2,
+      "service": "validation-enrichment",
+      "action": "Schema validation, IBAN/BIC check, FX enrichment via Camel",
+      "consumes": "CLEARFLOW.PAYMENT.INITIATED (ActiveMQ)",
+      "produces": "CLEARFLOW.PAYMENT.VALIDATED or CLEARFLOW.PAYMENT.REJECTED (ActiveMQ) + clearflow.payment.validated or clearflow.payment.rejected (Kafka)",
+      "via": "ValidationEnrichmentCamelRoute",
+      "onError": "CLEARFLOW.PAYMENT.DLQ after 3 retries + exponential backoff"
+    },
+    {
+      "step": 3,
+      "service": "fraud-scoring",
+      "action": "ML fraud scoring (RandomForest + velocity/pattern rules)",
+      "consumes": "clearflow.payment.initiated (Kafka)",
+      "produces": "clearflow.fraud.evaluated + clearflow.payment.blocked (if CRITICAL) (Kafka)",
+      "via": "FraudKafkaConsumer",
+      "onError": "clearflow.fraud.dlq after max retries"
+    },
+    {
+      "step": 4,
+      "service": "aml-compliance",
+      "action": "OFAC/SDN/PEP fuzzy screening, embargo country check via Camel",
+      "consumes": "CLEARFLOW.PAYMENT.VALIDATED (ActiveMQ)",
+      "produces": "CLEARFLOW.PAYMENT.SANCTIONS.HIT or CLEARFLOW.PAYMENT.SANCTIONS.CLEAR (ActiveMQ) + clearflow.aml.sanctions.hit/clear + clearflow.compliance.alerts (Kafka)",
+      "via": "AMLCamelRoute",
+      "onError": "CLEARFLOW.PAYMENT.DLQ after 3 retries + exponential backoff"
+    },
+    {
+      "step": 5,
+      "service": "routing-execution",
+      "action": "Rail selection (SWIFT/SEPA/TARGET2/RTP), liquidity check, execution",
+      "consumes": "CLEARFLOW.PAYMENT.SANCTIONS.CLEAR (ActiveMQ)",
+      "produces": "CLEARFLOW.PAYMENT.ROUTED or CLEARFLOW.PAYMENT.INSUFFICIENT.LIQUIDITY (ActiveMQ) + clearflow.payment.routed or clearflow.payment.failed (Kafka)",
+      "via": "RoutingCamelRoute",
+      "onError": "CLEARFLOW.PAYMENT.DLQ after 3 retries + exponential backoff"
+    },
+    {
+      "step": 6,
+      "service": "settlement",
+      "action": "Nostro debit, settlement ACK, analytics event",
+      "consumes": "CLEARFLOW.PAYMENT.ROUTED (ActiveMQ)",
+      "produces": "CLEARFLOW.PAYMENT.SETTLED or CLEARFLOW.PAYMENT.SETTLEMENT.FAILED (ActiveMQ) + clearflow.payment.settled + clearflow.analytics.settlement + clearflow.payment.settlement.failed (Kafka)",
+      "via": "SettlementCamelRoute",
+      "onError": "CLEARFLOW.PAYMENT.DLQ after 3 retries + exponential backoff"
+    },
+    {
+      "step": "6b",
+      "service": "routing-execution",
+      "action": "SAGA COMPENSATION \u2014 reverse routing reservation, release AML hold, void fraud reservation",
+      "trigger": "CLEARFLOW.PAYMENT.SETTLEMENT.FAILED (ActiveMQ) + clearflow.payment.settlement.failed (Kafka)",
+      "produces": "CLEARFLOW.PAYMENT.COMPENSATED (ActiveMQ) + clearflow.payment.compensated (Kafka)",
+      "via": "SagaCompensationRoute"
+    },
+    {
+      "step": 7,
+      "service": "audit",
+      "action": "Immutable event log \u2014 consumes ALL Kafka topics for audit trail",
+      "consumes": "ALL Kafka topics (fan-in)",
+      "via": "AuditEventConsumer"
+    },
+    {
+      "step": 8,
+      "service": "mcp-readonly-gateway",
+      "action": "AI observability \u2014 tool queries logged to Kafka for audit",
+      "produces": "clearflow.mcp.access.log (Kafka)",
+      "via": "AccessLogService"
+    }
+  ],
+  "circuitBreakers": [
+    {
+      "name": "KAFKA",
+      "wraps": "KafkaEventPublisher",
+      "service": "gateway",
+      "file": "gateway/src/main/java/com/clearflow/gateway/messaging/KafkaEventPublisher.java",
+      "fallback": "Routes to ActiveMQ when Kafka broker is unreachable",
+      "config": "Resilience4j \u2014 default sliding window 10, failure threshold 50%, wait 30s"
+    },
+    {
+      "name": "ACTIVEMQ",
+      "wraps": "ActiveMQPublisher",
+      "service": "gateway",
+      "file": "gateway/src/main/java/com/clearflow/gateway/messaging/ActiveMQPublisher.java",
+      "fallback": "Payment queued locally or rejected with 503",
+      "config": "Resilience4j \u2014 default sliding window 10, failure threshold 50%, wait 30s"
+    },
+    {
+      "name": "SOLACE",
+      "wraps": "SolacePublisher",
+      "service": "gateway",
+      "file": "gateway/src/main/java/com/clearflow/gateway/messaging/SolacePublisher.java",
+      "fallback": "Regional routing skipped, falls back to Kafka fan-out",
+      "config": "Resilience4j \u2014 default sliding window 10, failure threshold 50%, wait 30s"
+    }
+  ],
+  "sagaFlow": {
+    "trigger": "CLEARFLOW.PAYMENT.SETTLEMENT.FAILED (ActiveMQ) + clearflow.payment.settlement.failed (Kafka)",
+    "compensationRoute": "routing-execution/SagaCompensationRoute",
+    "compensationRouteFile": "routing-execution/src/main/java/com/clearflow/routing/camel/SagaCompensationRoute.java",
+    "steps": [
+      "1. Receive settlement failure event from SettlementCamelRoute",
+      "2. Release routing reservation \u2014 reverse rail assignment in RoutingCamelRoute",
+      "3. Release AML hold \u2014 unblock payment in AMLCamelRoute state store",
+      "4. Void fraud reservation \u2014 clear fraud engine hold in FraudKafkaConsumer",
+      "5. Publish clearflow.payment.compensated (Kafka) + CLEARFLOW.PAYMENT.COMPENSATED (ActiveMQ)",
+      "6. AuditEventConsumer logs full saga compensation trail"
+    ],
+    "idempotencyGuard": "Each compensation step checks saga-state before executing to prevent double-rollback"
+  },
+  "dlqConfig": {
+    "maximumRedeliveries": 3,
+    "redeliveryDelay": "1s",
+    "backoff": "exponential",
+    "backoffMultiplier": 2.0,
+    "maxRedeliveryDelay": "30s",
+    "dlqDestination": "jms:queue:CLEARFLOW.PAYMENT.DLQ",
+    "kafkaDlqTopics": [
+      "clearflow.payment.dlq",
+      "clearflow.fraud.dlq"
+    ],
+    "appliesTo": "ALL Apache Camel routes (ValidationEnrichmentCamelRoute, AMLCamelRoute, RoutingCamelRoute, SettlementCamelRoute, SagaCompensationRoute)"
+  },
+  "serviceToQueuesIndex": {
+    "gateway": [
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.payment.initiated",
+        "role": "producer",
+        "class": "KafkaEventPublisher"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.payment.initiated",
+        "role": "consumer",
+        "class": "PaymentStatusKafkaConsumer"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.payment.blocked",
+        "role": "consumer",
+        "class": "PaymentStatusKafkaConsumer"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.payment.validated",
+        "role": "consumer",
+        "class": "PaymentStatusKafkaConsumer"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.payment.rejected",
+        "role": "consumer",
+        "class": "PaymentStatusKafkaConsumer"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.aml.sanctions.hit",
+        "role": "consumer",
+        "class": "PaymentStatusKafkaConsumer"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.aml.sanctions.clear",
+        "role": "consumer",
+        "class": "PaymentStatusKafkaConsumer"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.payment.routed",
+        "role": "consumer",
+        "class": "PaymentStatusKafkaConsumer"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.payment.failed",
+        "role": "consumer",
+        "class": "PaymentStatusKafkaConsumer"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.payment.settled",
+        "role": "consumer",
+        "class": "PaymentStatusKafkaConsumer"
+      },
+      {
+        "broker": "ACTIVEMQ",
+        "name": "CLEARFLOW.PAYMENT.INITIATED",
+        "role": "producer",
+        "class": "ActiveMQPublisher"
+      }
+    ],
+    "fraud-scoring": [
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.payment.initiated",
+        "role": "consumer",
+        "class": "FraudKafkaConsumer"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.fraud.evaluated",
+        "role": "producer",
+        "class": "FraudKafkaConsumer"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.payment.blocked",
+        "role": "producer",
+        "class": "FraudKafkaConsumer"
+      }
+    ],
+    "audit": [
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.payment.initiated",
+        "role": "consumer",
+        "class": "AuditEventConsumer"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.fraud.evaluated",
+        "role": "consumer",
+        "class": "AuditEventConsumer"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.payment.blocked",
+        "role": "consumer",
+        "class": "AuditEventConsumer"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.payment.validated",
+        "role": "consumer",
+        "class": "AuditEventConsumer"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.payment.rejected",
+        "role": "consumer",
+        "class": "AuditEventConsumer"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.aml.sanctions.hit",
+        "role": "consumer",
+        "class": "AuditEventConsumer"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.aml.sanctions.clear",
+        "role": "consumer",
+        "class": "AuditEventConsumer"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.compliance.alerts",
+        "role": "consumer",
+        "class": "AuditEventConsumer"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.payment.routed",
+        "role": "consumer",
+        "class": "AuditEventConsumer"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.payment.failed",
+        "role": "consumer",
+        "class": "AuditEventConsumer"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.payment.settled",
+        "role": "consumer",
+        "class": "AuditEventConsumer"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.mcp.access.log",
+        "role": "consumer",
+        "class": "AuditEventConsumer"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.payment.compensated",
+        "role": "consumer",
+        "class": "AuditEventConsumer"
+      }
+    ],
+    "validation-enrichment": [
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.payment.validated",
+        "role": "producer",
+        "class": "ValidationEnrichmentCamelRoute"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.payment.rejected",
+        "role": "producer",
+        "class": "ValidationEnrichmentCamelRoute"
+      },
+      {
+        "broker": "ACTIVEMQ",
+        "name": "CLEARFLOW.PAYMENT.INITIATED",
+        "role": "consumer",
+        "class": "ValidationEnrichmentCamelRoute"
+      },
+      {
+        "broker": "ACTIVEMQ",
+        "name": "CLEARFLOW.PAYMENT.VALIDATED",
+        "role": "producer",
+        "class": "ValidationEnrichmentCamelRoute"
+      },
+      {
+        "broker": "ACTIVEMQ",
+        "name": "CLEARFLOW.PAYMENT.REJECTED",
+        "role": "producer",
+        "class": "ValidationEnrichmentCamelRoute"
+      }
+    ],
+    "aml-compliance": [
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.aml.sanctions.hit",
+        "role": "producer",
+        "class": "AMLCamelRoute"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.aml.sanctions.clear",
+        "role": "producer",
+        "class": "AMLCamelRoute"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.compliance.alerts",
+        "role": "producer",
+        "class": "AMLCamelRoute"
+      },
+      {
+        "broker": "ACTIVEMQ",
+        "name": "CLEARFLOW.PAYMENT.VALIDATED",
+        "role": "consumer",
+        "class": "AMLCamelRoute"
+      },
+      {
+        "broker": "ACTIVEMQ",
+        "name": "CLEARFLOW.PAYMENT.SANCTIONS.HIT",
+        "role": "producer",
+        "class": "AMLCamelRoute"
+      },
+      {
+        "broker": "ACTIVEMQ",
+        "name": "CLEARFLOW.PAYMENT.SANCTIONS.CLEAR",
+        "role": "producer",
+        "class": "AMLCamelRoute"
+      }
+    ],
+    "routing-execution": [
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.payment.routed",
+        "role": "producer",
+        "class": "RoutingCamelRoute"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.payment.failed",
+        "role": "producer",
+        "class": "RoutingCamelRoute"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.payment.settlement.failed",
+        "role": "consumer",
+        "class": "SagaCompensationRoute"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.payment.compensated",
+        "role": "producer",
+        "class": "SagaCompensationRoute"
+      },
+      {
+        "broker": "ACTIVEMQ",
+        "name": "CLEARFLOW.PAYMENT.SANCTIONS.CLEAR",
+        "role": "consumer",
+        "class": "RoutingCamelRoute"
+      },
+      {
+        "broker": "ACTIVEMQ",
+        "name": "CLEARFLOW.PAYMENT.ROUTED",
+        "role": "producer",
+        "class": "RoutingCamelRoute"
+      },
+      {
+        "broker": "ACTIVEMQ",
+        "name": "CLEARFLOW.PAYMENT.INSUFFICIENT.LIQUIDITY",
+        "role": "producer",
+        "class": "RoutingCamelRoute"
+      },
+      {
+        "broker": "ACTIVEMQ",
+        "name": "CLEARFLOW.PAYMENT.SETTLEMENT.FAILED",
+        "role": "consumer",
+        "class": "SagaCompensationRoute"
+      },
+      {
+        "broker": "ACTIVEMQ",
+        "name": "CLEARFLOW.PAYMENT.COMPENSATED",
+        "role": "producer",
+        "class": "SagaCompensationRoute"
+      }
+    ],
+    "settlement": [
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.payment.settled",
+        "role": "producer",
+        "class": "SettlementCamelRoute"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.analytics.settlement",
+        "role": "producer",
+        "class": "SettlementCamelRoute"
+      },
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.payment.settlement.failed",
+        "role": "producer",
+        "class": "SettlementCamelRoute"
+      },
+      {
+        "broker": "ACTIVEMQ",
+        "name": "CLEARFLOW.PAYMENT.ROUTED",
+        "role": "consumer",
+        "class": "SettlementCamelRoute"
+      },
+      {
+        "broker": "ACTIVEMQ",
+        "name": "CLEARFLOW.PAYMENT.SETTLED",
+        "role": "producer",
+        "class": "SettlementCamelRoute"
+      },
+      {
+        "broker": "ACTIVEMQ",
+        "name": "CLEARFLOW.PAYMENT.SETTLEMENT.FAILED",
+        "role": "producer",
+        "class": "SettlementCamelRoute"
+      }
+    ],
+    "mcp-readonly-gateway": [
+      {
+        "broker": "KAFKA",
+        "name": "clearflow.mcp.access.log",
+        "role": "producer",
+        "class": "AccessLogService"
+      }
+    ]
+  }
+}
