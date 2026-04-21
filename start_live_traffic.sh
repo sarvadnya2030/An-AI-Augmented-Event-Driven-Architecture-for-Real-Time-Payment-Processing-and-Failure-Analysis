@@ -21,7 +21,7 @@ echo ""
 echo "[1/4] Starting infrastructure..."
 cd "$BASE/infrastructure"
 
-docker-compose up -d zookeeper kafka activemq-artemis redis mongodb cassandra elasticsearch
+docker compose up -d zookeeper kafka activemq-artemis redis mongodb cassandra elasticsearch
 
 echo "      Waiting 50s for brokers to be ready..."
 sleep 50
@@ -29,7 +29,7 @@ sleep 50
 # Ensure Kafka is responsive
 echo "      Verifying Kafka..."
 for i in $(seq 1 12); do
-  if docker-compose exec -T kafka kafka-topics --bootstrap-server kafka:9092 --list &>/dev/null 2>&1; then
+  if docker compose exec -T kafka kafka-topics --bootstrap-server kafka:9092 --list &>/dev/null 2>&1; then
     echo "      Kafka ready."
     break
   fi
@@ -39,7 +39,7 @@ done
 
 # Create Cassandra keyspace for audit service
 echo "      Creating Cassandra keyspace clearflow_dev..."
-docker-compose exec -T cassandra cqlsh -e \
+docker compose exec -T cassandra cqlsh -e \
   "CREATE KEYSPACE IF NOT EXISTS clearflow_dev WITH replication = {'class':'SimpleStrategy','replication_factor':1} AND durable_writes = true;" \
   2>/dev/null || echo "      (Cassandra keyspace creation failed — audit may log errors but pipeline will still work)"
 

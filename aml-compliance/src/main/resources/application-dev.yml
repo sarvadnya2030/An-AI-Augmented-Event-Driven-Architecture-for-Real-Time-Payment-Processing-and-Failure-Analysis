@@ -29,3 +29,8 @@ camunda:
     zeebe:
       grpc-address: http://localhost:26500
       prefer-rest-over-grpc: false
+
+management:
+  health:
+    zeebe:
+      enabled: false
