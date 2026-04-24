@@ -18,10 +18,10 @@ except ImportError:
     print("pip install requests"); sys.exit(1)
 
 GATEWAY     = "http://localhost:8080"
-BATCH_SIZE  = 1_000
-NUM_BATCHES = 100
-WORKERS     = 10       # threads per batch — conservative
-COOLDOWN    = 5        # seconds between batches
+BATCH_SIZE  = 500      # reduced from 1000
+NUM_BATCHES = 200      # doubled to maintain 100k total
+WORKERS     = 3        # reduced from 10 — match broker capacity
+COOLDOWN    = 2        # reduced from 5
 
 CLEAN = [
     {"name": "Alpine Logistics GmbH",  "iban": "DE89370400440532013000",      "bic": "DEUTDEDBXXX", "country": "DE"},

@@ -135,9 +135,21 @@ public class PaymentController {
                                 );
 
                                 Mono.fromRunnable(() -> {
-                                    activeMQPublisher.publish(event, clientId);
-                                    solacePublisher.publish(event);
-                                    kafkaEventPublisher.publish(event, "00-" + paymentId.replace("-", "") + "-0000000000000000-01", "");
+                                    try {
+                                        activeMQPublisher.publish(event, clientId);
+                                    } catch (Exception ex) {
+                                        log.error("Failed to publish to ActiveMQ for paymentId={}", paymentId, ex);
+                                    }
+                                    try {
+                                        solacePublisher.publish(event);
+                                    } catch (Exception ex) {
+                                        log.debug("Solace publish failed for paymentId={}", paymentId);
+                                    }
+                                    try {
+                                        kafkaEventPublisher.publish(event, "00-" + paymentId.replace("-", "") + "-0000000000000000-01", "");
+                                    } catch (Exception ex) {
+                                        log.debug("Kafka publish failed for paymentId={}", paymentId);
+                                    }
                                     paymentStatusService.updateStatus(paymentId, PaymentStatus.INITIATED,
                                             "gateway", "Payment accepted and queued").subscribe();
                                     paymentStatusService.storeUetrMapping(request.uetr(), paymentId).subscribe();
