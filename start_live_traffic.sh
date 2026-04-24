@@ -80,7 +80,7 @@ start_service() {
   SPRING_PROFILES_ACTIVE=dev \
   JAVA_HOME="$JAVA_HOME_PATH" \
     "$JAVA_BIN" \
-    -Xmx256m \
+    -Xmx1024m -Xms512m \
     -jar "$BASE/$jar" \
     > "$LOGS/$name.log" 2>&1 &
   echo $! > "$LOGS/$name.pid"

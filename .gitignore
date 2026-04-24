@@ -17,3 +17,7 @@ __pycache__/
 # IDE
 .vscode/
 .DS_Store
+
+# Generated analysis artifacts
+graphify-out/
+frontend/dist/

@@ -66,6 +66,14 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_ZOOKEEPER_SESSION_TIMEOUT_MS: 6000
+      KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS: 6000
+    command: >
+      bash -c "
+        echo 'Clearing stale broker znode...'
+        (sleep 5 && /usr/bin/zookeeper-shell zookeeper:2181 rmr /brokers/ids/1) &
+        /etc/confluent/docker/run
+      "
     healthcheck:
       test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
     networks: [clearflow-internal]
