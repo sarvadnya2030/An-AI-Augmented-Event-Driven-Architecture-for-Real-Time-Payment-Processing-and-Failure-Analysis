@@ -3,6 +3,8 @@ package com.clearflow.compliance.service;
 import com.clearflow.compliance.domain.SDNEntry;
 import com.opencsv.CSVReader;
 import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -13,6 +15,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @Component
 public class SDNLoader {
+    private static final Logger log = LoggerFactory.getLogger(SDNLoader.class);
 
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
     private List<SDNEntry> sdnEntries = new ArrayList<>();
