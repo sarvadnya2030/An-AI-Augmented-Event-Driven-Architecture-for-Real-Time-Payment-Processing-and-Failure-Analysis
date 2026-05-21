@@ -10,7 +10,7 @@
 #   ./demo.sh --health     — health check only
 #
 # Prerequisites:
-#   Option A (dev, fast):   bash start_live_traffic.sh
+#   Option A (dev, fast):   bash clearflow-start.sh
 #   Option B (full Docker): bash deploy.sh
 # ═══════════════════════════════════════════════════════════════════
 
@@ -64,7 +64,7 @@ for entry in "gateway:8080" "fraud-scoring:8081" "validation-enrichment:8082" \
   [ "$code" = "200" ] && ok "$name (:$port)" || { fail "$name (:$port) — $code"; ALL_UP=false; }
 done
 
-$ALL_UP || { printf "\n  ${RED}${B}Services down. Run: bash start_live_traffic.sh${R}\n"; exit 1; }
+$ALL_UP || { printf "\n  ${RED}${B}Services down. Run: bash clearflow-start.sh${R}\n"; exit 1; }
 printf "\n  ${GREEN}${B}All 8 services healthy ✓${R}\n"
 pause
 
