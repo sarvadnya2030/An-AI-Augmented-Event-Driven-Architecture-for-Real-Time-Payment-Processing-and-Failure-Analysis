@@ -3,6 +3,8 @@ package com.clearflow.mcp.tool;
 import com.clearflow.mcp.llm.LLMClient;
 import com.clearflow.mcp.llm.LLMMessage;
 import com.clearflow.mcp.service.CodeGraphService;
+import com.clearflow.mcp.service.CascadeFailureDetector;
+import com.clearflow.mcp.service.CascadeFailureDetector.CascadePattern;
 import com.clearflow.mcp.service.ElasticsearchLogFetcher;
 import com.clearflow.mcp.service.ElasticsearchLogFetcher.LogEntry;
 import com.clearflow.mcp.service.ForecastSettlementService;
@@ -28,6 +30,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Spring AI MCP tool definitions for ClearFlow.
@@ -52,6 +55,7 @@ public class ClearFlowMcpTools {
     private final ObjectMapper objectMapper;
     private final UETRAnomalyService uetrAnomalyService;
     private final ForecastSettlementService forecastSettlementService;
+    private final CascadeFailureDetector cascadeDetector;
 
     public ClearFlowMcpTools(RootCauseAnalysisService rootCauseService,
                               ElasticsearchLogFetcher logFetcher,
@@ -62,7 +66,8 @@ public class ClearFlowMcpTools {
                               LLMClient llmClient,
                               ObjectMapper objectMapper,
                               UETRAnomalyService uetrAnomalyService,
-                              ForecastSettlementService forecastSettlementService) {
+                              ForecastSettlementService forecastSettlementService,
+                              CascadeFailureDetector cascadeDetector) {
         this.rootCauseService = rootCauseService;
         this.logFetcher = logFetcher;
         this.reconstructor = reconstructor;
@@ -73,6 +78,7 @@ public class ClearFlowMcpTools {
         this.objectMapper = objectMapper;
         this.uetrAnomalyService = uetrAnomalyService;
         this.forecastSettlementService = forecastSettlementService;
+        this.cascadeDetector = cascadeDetector;
     }
 
     // ── Tool 1: Root cause analysis ───────────────────────────────────────────
@@ -691,6 +697,87 @@ public class ClearFlowMcpTools {
         if (hasPool) return "DOWNSTREAM_STARVATION";
         if (hasDLQ)  return "RETRY_STORM";
         return "UNKNOWN";
+    }
+
+    // ── Tool 10: Detect cascade failures (ELK+MCP) ──────────────────────────────
+
+    @Tool(description = """
+            Detects cascade failure patterns in the payment pipeline.
+            A cascade is when one service failure propagates downstream, causing
+            dependent services to also fail. Analyzes logs for temporal correlation
+            of failures across services and reconstructs failure chains.
+            Returns: cascade ID, root cause service, cascade type (BROKER_OUTAGE /
+            LIQUIDITY_EXHAUSTED / QUEUE_BACKPRESSURE / CIRCUIT_BREAKER_OPEN),
+            affected services count, propagation speed (ms/stage), and severity.
+            Use this to answer: 'Are there any cascading failures right now?',
+            'Did a broker outage cause routing to fail?', 'What's the impact of
+            the fraud-scoring issue?'
+            windowMinutes defaults to 5 if not specified (recommended for active
+            monitoring). Set to 30+ for historical analysis.
+            """)
+    public String detectCascadeFailures(int windowMinutes) {
+        int win = windowMinutes <= 0 ? 5 : windowMinutes;
+        try {
+            List<CascadePattern> cascades = cascadeDetector.detectActiveCascades(win);
+
+            if (cascades.isEmpty()) {
+                return String.format("No cascade failures detected in last %d minutes.", win);
+            }
+
+            StringBuilder sb = new StringBuilder();
+            sb.append(String.format("🚨 Cascade Failures Detected (last %d minutes): %d pattern(s)\n\n", win, cascades.size()));
+
+            cascades.forEach(cascade -> {
+                sb.append(String.format("CASCADE ID: %s\n", cascade.id()));
+                sb.append(String.format("  Root Cause: %s (%s)\n", cascade.rootCauseService(), cascade.rootCauseEvent()));
+                sb.append(String.format("  Type: %s\n", cascade.cascadeType()));
+                sb.append(String.format("  Severity: %s\n", cascade.severity()));
+                sb.append(String.format("  Affected Services: %d\n", cascade.propagationChain().size()));
+                sb.append(String.format("  Propagation Speed: %.1f ms/stage\n", cascade.propagationSpeed()));
+                sb.append(String.format("  Timeline: %s\n", cascade.rootCauseTime()));
+                sb.append("  Chain: ");
+                sb.append(cascade.propagationChain().stream()
+                    .map(e -> String.format("%s[%d]", e.service(), e.stageNumber()))
+                    .collect(Collectors.joining(" → ")));
+                sb.append("\n\n");
+            });
+
+            return sb.toString();
+        } catch (Exception ex) {
+            return "Error detecting cascades: " + ex.getMessage();
+        }
+    }
+
+    /**
+     * Get recent cascades from cache (fast, no ES query).
+     */
+    @Tool(description = """
+            Returns recently detected cascade patterns from the in-memory cache.
+            This is faster than detectCascadeFailures as it doesn't query
+            Elasticsearch, but only contains cascades detected in the last 5 minutes.
+            Use for quick status checks: 'What cascades are we tracking?'
+            """)
+    public String getRecentCascades() {
+        List<CascadePattern> cascades = cascadeDetector.getRecentCascades();
+
+        if (cascades.isEmpty()) {
+            return "No recent cascade patterns in cache.";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("Recent Cascade Patterns (%d detected):\n\n", cascades.size()));
+
+        cascades.forEach(cascade -> {
+            sb.append(String.format("[%s] %s: %s → %d services, speed=%.1f ms/stage\n",
+                cascade.severity(),
+                cascade.id().substring(0, 8),
+                cascade.rootCauseService(),
+                cascade.propagationChain().size(),
+                cascade.propagationSpeed()
+            ));
+        });
+
+        return sb.toString();
     }
 
     private String buildCascadeEventSummary(List<LogEntry> cascadeEvents) {
