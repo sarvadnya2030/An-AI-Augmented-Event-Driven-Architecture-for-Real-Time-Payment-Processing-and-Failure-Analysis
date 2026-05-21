@@ -5,6 +5,9 @@ import {
 import NavBar from './components/NavBar.jsx';
 import PaymentSearch from './components/PaymentSearch.jsx';
 import Chat from './components/Chat.jsx';
+import PaymentFlowFixed from './components/PaymentFlowFixed.jsx';
+import GraphifyViewer from './components/GraphifyViewer.jsx';
+import DashboardTabs from './components/DashboardTabs.jsx';
 import {
   fetchOverview, fetchRails, fetchFraudMetrics,
   fetchAlerts, fetchSystemicHealth, fetchServiceHealth,
@@ -387,6 +390,9 @@ export default function App() {
       <NavBar page={page} navigate={navigate} services={services} />
       <main className="main-content">
         {page === 'dashboard' && <Dashboard onServicesChange={setServices} />}
+        {page === 'flow'      && <PaymentFlowFixed />}
+        {page === 'graphify'  && <GraphifyViewer />}
+        {page === 'analytics' && <DashboardTabs />}
         {page === 'search'    && <PaymentSearch />}
         {page === 'chat'      && <Chat />}
       </main>
