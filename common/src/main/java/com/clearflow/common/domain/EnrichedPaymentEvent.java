@@ -20,6 +20,8 @@ public record EnrichedPaymentEvent(
         int expectedSettlementHours,
         String customerTier,
         String kycStatus,
-        Instant enrichedAt
+        Instant enrichedAt,
+        String debtorName,
+        String creditorName
 ) implements Serializable {
 }

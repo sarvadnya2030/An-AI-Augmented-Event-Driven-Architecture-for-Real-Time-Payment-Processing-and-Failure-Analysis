@@ -18,10 +18,11 @@ public class LiquidityReservationService {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    @Transactional(isolation = Isolation.SERIALIZABLE, timeout = 5)
+    @Transactional(isolation = Isolation.READ_COMMITTED, timeout = 10)
     public ReservationResult reserve(String currency, BigDecimal amount, String paymentId, String rail) {
+        // Row-level lock: queues concurrent threads instead of causing version-mismatch failures
         var rows = jdbcTemplate.queryForList(
-                "SELECT account_id, available_balance, version FROM nostro_accounts WHERE currency = ? AND available_balance >= ? FETCH FIRST 1 ROWS ONLY FOR UPDATE",
+                "SELECT account_id, available_balance FROM nostro_accounts WHERE currency = ? AND available_balance >= ? FETCH FIRST 1 ROWS ONLY FOR UPDATE",
                 currency, amount
         );
         if (rows.isEmpty()) {
@@ -31,19 +32,15 @@ public class LiquidityReservationService {
         Map<String, Object> account = rows.get(0);
         String accountId = String.valueOf(account.get("ACCOUNT_ID"));
         BigDecimal available = new BigDecimal(String.valueOf(account.get("AVAILABLE_BALANCE")));
-        long version = Long.parseLong(String.valueOf(account.get("VERSION")));
 
-        int updated = jdbcTemplate.update(
-                "UPDATE nostro_accounts SET available_balance = available_balance - ?, reserved_balance = reserved_balance + ?, version = version + 1, last_updated = SYSTIMESTAMP WHERE account_id = ? AND version = ?",
-                amount, amount, accountId, version
+        jdbcTemplate.update(
+                "UPDATE nostro_accounts SET available_balance = available_balance - ?, reserved_balance = reserved_balance + ?, version = version + 1, last_updated = CURRENT_TIMESTAMP WHERE account_id = ?",
+                amount, amount, accountId
         );
-        if (updated == 0) {
-            throw new IllegalStateException("Optimistic update failed for account " + accountId);
-        }
 
         String reservationId = UUID.randomUUID().toString();
         jdbcTemplate.update(
-                "INSERT INTO liquidity_reservations (reservation_id, payment_id, account_id, amount, currency, reserved_at, status) VALUES (?, ?, ?, ?, ?, SYSTIMESTAMP, 'RESERVED')",
+                "INSERT INTO liquidity_reservations (reservation_id, payment_id, account_id, amount, currency, reserved_at, status) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'RESERVED')",
                 reservationId, paymentId, accountId, amount, currency
         );
 
@@ -52,12 +49,19 @@ public class LiquidityReservationService {
 
     @Transactional
     public void release(String paymentId) {
-        var rows = jdbcTemplate.queryForList("SELECT account_id, amount FROM liquidity_reservations WHERE payment_id = ? AND status = 'RESERVED'", paymentId);
+        var rows = jdbcTemplate.queryForList(
+                "SELECT account_id, amount FROM liquidity_reservations WHERE payment_id = ? AND status = 'RESERVED'",
+                paymentId);
         for (Map<String, Object> row : rows) {
             String accountId = String.valueOf(row.get("ACCOUNT_ID"));
             BigDecimal amount = new BigDecimal(String.valueOf(row.get("AMOUNT")));
-            jdbcTemplate.update("UPDATE nostro_accounts SET available_balance = available_balance + ?, reserved_balance = reserved_balance - ? WHERE account_id = ?", amount, amount, accountId);
-            jdbcTemplate.update("UPDATE liquidity_reservations SET status = 'RELEASED', released_at = SYSTIMESTAMP WHERE payment_id = ?", paymentId);
+            // In dev/sim mode: recycle reserved funds back to available so the pool never drains
+            jdbcTemplate.update(
+                    "UPDATE nostro_accounts SET available_balance = available_balance + ?, reserved_balance = reserved_balance - ? WHERE account_id = ?",
+                    amount, amount, accountId);
+            jdbcTemplate.update(
+                    "UPDATE liquidity_reservations SET status = 'SETTLED', released_at = CURRENT_TIMESTAMP WHERE payment_id = ?",
+                    paymentId);
         }
     }
 

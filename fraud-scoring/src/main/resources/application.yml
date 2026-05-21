@@ -1,10 +1,10 @@
 server:
   port: 8081
 spring:
+  config:
+    import: "optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
   application:
     name: fraud-scoring
-  config:
-    import: optional:configserver:http://config-server:8888
   kafka:
     bootstrap-servers: ${KAFKA_BROKERS:kafka:9092}
   data:
@@ -20,6 +20,23 @@ management:
   endpoint:
     health:
       show-details: always
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+  info:
+    title: ClearFlow ${spring.application.name}
+    version: 1.0.0
+    description: ISO 20022 payment processing microservice
 resilience4j:
   circuitbreaker:
     instances:
@@ -32,3 +49,8 @@ resilience4j:
       lgbm:
         max-attempts: 3
         wait-duration: 200ms
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true

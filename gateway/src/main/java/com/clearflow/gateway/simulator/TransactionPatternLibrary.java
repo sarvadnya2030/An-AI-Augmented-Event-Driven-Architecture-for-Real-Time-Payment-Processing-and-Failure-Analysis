@@ -59,6 +59,8 @@ public class TransactionPatternLibrary {
                 "E2E-" + paymentId.substring(0, 8),
                 UUID.randomUUID().toString(),
                 debtor.iban(), creditor.iban(),
+                debtor.name(), creditor.name(),
+                debtor.bic(), creditor.bic(),
                 amount, currency,
                 debtor.country(), creditor.country(),
                 rail, ts, "simulator"

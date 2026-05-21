@@ -5,6 +5,7 @@ import com.clearflow.mcp.llm.LLMMessage;
 import com.clearflow.mcp.service.CodeGraphService;
 import com.clearflow.mcp.service.ElasticsearchLogFetcher;
 import com.clearflow.mcp.service.ElasticsearchLogFetcher.LogEntry;
+import com.clearflow.mcp.service.ForecastSettlementService;
 import com.clearflow.mcp.service.PaymentTimelineReconstructor;
 import com.clearflow.mcp.service.PaymentTimelineReconstructor.PaymentTimeline;
 import com.clearflow.mcp.service.PaymentTimelineReconstructor.PipelineStage;
@@ -16,11 +17,13 @@ import com.clearflow.mcp.service.RootCauseClassifier;
 import com.clearflow.mcp.service.RootCauseClassifier.ClassificationResult;
 import com.clearflow.mcp.service.SystemicFailureDetector;
 import com.clearflow.mcp.service.SystemicFailureDetector.SystemicReport;
+import com.clearflow.mcp.service.UETRAnomalyService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +50,8 @@ public class ClearFlowMcpTools {
     private final RootCauseClassifier classifier;
     private final LLMClient llmClient;
     private final ObjectMapper objectMapper;
+    private final UETRAnomalyService uetrAnomalyService;
+    private final ForecastSettlementService forecastSettlementService;
 
     public ClearFlowMcpTools(RootCauseAnalysisService rootCauseService,
                               ElasticsearchLogFetcher logFetcher,
@@ -55,7 +60,9 @@ public class ClearFlowMcpTools {
                               CodeGraphService codeGraphService,
                               RootCauseClassifier classifier,
                               LLMClient llmClient,
-                              ObjectMapper objectMapper) {
+                              ObjectMapper objectMapper,
+                              UETRAnomalyService uetrAnomalyService,
+                              ForecastSettlementService forecastSettlementService) {
         this.rootCauseService = rootCauseService;
         this.logFetcher = logFetcher;
         this.reconstructor = reconstructor;
@@ -64,6 +71,8 @@ public class ClearFlowMcpTools {
         this.classifier = classifier;
         this.llmClient = llmClient;
         this.objectMapper = objectMapper;
+        this.uetrAnomalyService = uetrAnomalyService;
+        this.forecastSettlementService = forecastSettlementService;
     }
 
     // ── Tool 1: Root cause analysis ───────────────────────────────────────────
@@ -578,6 +587,96 @@ public class ClearFlowMcpTools {
           .append("  topologyLoaded=").append(codeGraphService.isTopologyLoaded()).append("]");
 
         return sb.toString();
+    }
+
+    // ── Tool 14: UETR velocity anomaly detection ──────────────────────────────
+
+    @Tool(description = """
+            Detects UETR velocity anomalies by running a sliding-window z-score
+            over per-debtor payment counts from Elasticsearch.
+
+            Returns a list of debtors whose payment count within the window exceeds
+            statistical thresholds:
+              - HIGH:   z-score > 3.0 (count exceeds mean + 3 standard deviations)
+              - MEDIUM: z-score > 2.0 (count exceeds mean + 2 standard deviations)
+
+            Each anomaly includes: debtorRef (correlationId or IBAN), count,
+            zScore, severity (HIGH/MEDIUM), and detectedAt timestamp.
+
+            Also returns: scanned (total distinct debtors analysed) and windowStart.
+
+            Use this to answer: 'are there any velocity anomalies right now?',
+            'which debtors are sending an unusually high number of payments?',
+            'is there a UETR burst in the last hour?'
+            windowMinutes defaults to 60 if not specified.
+            """)
+    public String uetrAnomalyDetection(int windowMinutes) {
+        int window = windowMinutes <= 0 ? 60 : windowMinutes;
+        UETRAnomalyService.AnomalyReport report = uetrAnomalyService.detect(window);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("windowMinutes", window);
+        result.put("windowStart",   report.windowStart().toString());
+        result.put("scanned",       report.scanned());
+        result.put("anomalyCount",  report.anomalies().size());
+
+        List<Map<String, Object>> anomalyList = new ArrayList<>();
+        for (UETRAnomalyService.VelocityAnomaly a : report.anomalies()) {
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("debtorRef",  a.debtorRef());
+            entry.put("count",      a.count());
+            entry.put("zScore",     a.zScore());
+            entry.put("severity",   a.severity());
+            entry.put("detectedAt", a.detectedAt().toString());
+            anomalyList.add(entry);
+        }
+        result.put("anomalies", anomalyList);
+        return toJson(result);
+    }
+
+    // ── Tool 15: Settlement volume forecasting ────────────────────────────────
+
+    @Tool(description = """
+            Forecasts settlement volume for the next N hours using Holt-Winters simple
+            exponential smoothing (alpha=0.3) on historical hourly settlement counts
+            from Elasticsearch. No external ML library — pure Java time-series.
+
+            Returns:
+              - forecasts: list of HourlyForecast entries, each with:
+                  hour (ISO instant), predicted count, lower95, upper95 (95% CI)
+              - confidence: 0.0–1.0 reflecting data coverage, noise level, and horizon
+              - method: algorithm descriptor (e.g. "HoltWinters-SimpleES-alpha=0.3")
+              - generatedAt: when the forecast was computed
+
+            Uses clearflow-settlement-* index (falls back to SETTLEMENT_COMPLETE events
+            from clearflow-* if settlement index is empty).
+
+            Use this to answer: 'how many settlements do we expect in the next 24 hours?',
+            'will settlement volume be elevated tonight?', 'forecast the next 4 hours of volume',
+            'what is the predicted settlement load for tomorrow morning?'
+            horizonHours defaults to 24 if not specified (max 168).
+            """)
+    public String forecastSettlement(int horizonHours) {
+        int horizon = horizonHours <= 0 ? 24 : horizonHours;
+        ForecastSettlementService.ForecastResult result = forecastSettlementService.forecast(horizon);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("horizonHours",  horizon);
+        response.put("confidence",    result.confidence());
+        response.put("method",        result.method());
+        response.put("generatedAt",   result.generatedAt().toString());
+
+        List<Map<String, Object>> forecastList = new ArrayList<>();
+        for (ForecastSettlementService.HourlyForecast f : result.forecasts()) {
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("hour",      f.hour().toString());
+            entry.put("predicted", f.predicted());
+            entry.put("lower95",   f.lower95());
+            entry.put("upper95",   f.upper95());
+            forecastList.add(entry);
+        }
+        response.put("forecasts", forecastList);
+        return toJson(response);
     }
 
     private String detectCascadeType(List<LogEntry> cascadeEvents) {

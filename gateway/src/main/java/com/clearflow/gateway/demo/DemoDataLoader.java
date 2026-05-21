@@ -659,6 +659,8 @@ public class DemoDataLoader implements CommandLineRunner {
         PaymentInitiatedEvent event = new PaymentInitiatedEvent(
                 paymentId, correlationId, instructionId, endToEndId, uetr,
                 debtorIban, creditorIban,
+                "Demo Debtor " + debtorCountry, "Demo Creditor " + creditorCountry,
+                debtorBic, creditorBic,
                 amount, currency,
                 debtorCountry, creditorCountry,
                 channel,

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
   <springProperty scope="context" name="SERVICE_NAME" source="spring.application.name" defaultValue="clearflow-service"/>
+  <include resource="logback-rolling-include.xml"/>
 
   <!-- JSON console appender -->
   <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
@@ -66,6 +67,7 @@
   <root level="INFO">
     <appender-ref ref="CONSOLE"/>
     <appender-ref ref="ASYNC_LOGSTASH"/>
+      <appender-ref ref="ASYNC_ROLLING"/>
   </root>
 
   <!-- Reduce noise from framework -->

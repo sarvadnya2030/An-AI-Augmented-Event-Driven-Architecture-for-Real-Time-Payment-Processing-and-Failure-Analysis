@@ -7,4 +7,6 @@ import java.util.Optional;
 
 public interface SettlementRepository extends JpaRepository<SettlementRecord, String> {
     Optional<SettlementRecord> findByPaymentId(String paymentId);
+
+    boolean existsByPaymentId(String paymentId);
 }

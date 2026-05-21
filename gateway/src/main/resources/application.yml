@@ -1,8 +1,8 @@
 spring:
+  config:
+    import: "optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
   application:
     name: gateway
-  config:
-    import: optional:configserver:http://config-server:8888
   security:
     oauth2:
       resourceserver:
@@ -53,7 +53,29 @@ management:
   endpoint:
     health:
       show-details: always
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+  info:
+    title: ClearFlow ${spring.application.name}
+    version: 1.0.0
+    description: ISO 20022 payment processing microservice
 security:
   cors:
     allowed-origins:
       - http://localhost:3000
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true

@@ -3,6 +3,7 @@ package com.clearflow.fraud.service;
 import com.clearflow.fraud.domain.FraudRequest;
 import com.clearflow.fraud.domain.FraudResponse;
 import com.clearflow.fraud.domain.RiskBand;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -15,6 +16,12 @@ public class HeuristicScoringService {
 
     private final CountryRiskMatrix countryRiskMatrix;
     private final VelocityCheckService velocityCheckService;
+
+    @Value("${fraud.velocity.threshold.1h:5}")
+    private long velocityThreshold1h;
+
+    @Value("${fraud.velocity.threshold.24h:10}")
+    private long velocityThreshold24h;
 
     public HeuristicScoringService(CountryRiskMatrix countryRiskMatrix, VelocityCheckService velocityCheckService) {
         this.countryRiskMatrix = countryRiskMatrix;
@@ -31,8 +38,8 @@ public class HeuristicScoringService {
         if (request.amount().compareTo(BigDecimal.valueOf(1000000)) > 0) score += 0.1d;
         if (countryRiskMatrix.getRisk(request.creditorCountry()) >= 8) score += 0.3d;
         if (countryRiskMatrix.getRisk(request.debtorCountry()) >= 8) score += 0.2d;
-        if (velocity1h > 5) score += 0.15d;
-        if (velocity1h > 10) score += 0.1d;
+        if (velocity1h > velocityThreshold1h) score += 0.15d;
+        if (velocity1h > velocityThreshold24h) score += 0.1d;
         if (firstPair && request.amount().compareTo(BigDecimal.valueOf(10000)) > 0) score += 0.1d;
         if ("SWIFT_GPI".equalsIgnoreCase(request.channel()) && crossBorder) score += 0.05d;
 

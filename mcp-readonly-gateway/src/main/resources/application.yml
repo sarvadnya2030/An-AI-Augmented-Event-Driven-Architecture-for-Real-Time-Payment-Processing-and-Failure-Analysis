@@ -2,10 +2,10 @@ server:
   port: 8087
 
 spring:
+  config:
+    import: "optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
   application:
     name: mcp-readonly-gateway
-  config:
-    import: optional:configserver:http://config-server:8888/
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -39,13 +39,17 @@ clearflow:
   code-graph:
     path: ${CODE_GRAPH_PATH:../graphify-out/graph.json}
   llm:
-    provider: openrouter
+    provider: nvidia
+    nvidia:
+      api-key: ${NVIDIA_API_KEY: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}
+      model: nvidia/nemotron-3-nano-omni-30b-a3b-reasoning
+      reasoning-budget: 16384
     ollama:
       base-url: http://localhost:11434
-      model: qwen3.5:0.8b
+      model: qwen3:4b
     openrouter:
       base-url: https://openrouter.ai/api/v1
-      api-key: ${OPENROUTER_API_KEY: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}
+      api-key: ${OPENROUTER_API_KEY:}
       model: meta-llama/llama-3.3-70b-instruct
 
 management:
@@ -53,3 +57,25 @@ management:
     web:
       exposure:
         include: health,prometheus,info
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+  info:
+    title: ClearFlow ${spring.application.name}
+    version: 1.0.0
+    description: ISO 20022 payment processing microservice

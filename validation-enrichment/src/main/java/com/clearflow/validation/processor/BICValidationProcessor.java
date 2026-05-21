@@ -31,7 +31,7 @@ public class BICValidationProcessor implements Processor {
             }
         }
         if (!known) {
-            log.warn("Unknown correspondent BIC={}, processing continues", creditorBic);
+            log.debug("Unknown correspondent BIC={}, processing continues", creditorBic);
         }
         exchange.getIn().setHeader("bic.known", known);
         exchange.getIn().setHeader("bic.valid", formatOk);

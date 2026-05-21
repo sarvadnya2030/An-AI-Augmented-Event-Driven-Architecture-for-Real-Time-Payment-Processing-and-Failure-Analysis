@@ -19,11 +19,16 @@ import org.springframework.web.bind.annotation.RestController;
 import com.clearflow.mcp.llm.LLMClient;
 import com.clearflow.mcp.llm.LLMMessage;
 import com.clearflow.mcp.service.AccessLogService;
+import com.clearflow.mcp.service.ElasticsearchLogFetcher;
+import com.clearflow.mcp.service.ForecastSettlementService;
 import com.clearflow.mcp.service.McpMetricsService;
 import com.clearflow.mcp.service.McpRateLimiter;
+import com.clearflow.mcp.service.PaymentTimelineReconstructor;
 import com.clearflow.mcp.service.RootCauseAnalysisService;
 import com.clearflow.mcp.service.SystemicFailureDetector;
+import com.clearflow.mcp.service.UETRAnomalyService;
 import com.clearflow.mcp.tool.MCPTool;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 @RestController
 @RequestMapping("/mcp")
@@ -43,6 +48,11 @@ public class MCPController {
     private final RootCauseAnalysisService rootCauseService;
     private final SystemicFailureDetector systemicDetector;
     private final McpMetricsService mcpMetricsService;
+    private final ElasticsearchLogFetcher logFetcher;
+    private final PaymentTimelineReconstructor timelineReconstructor;
+    private final StringRedisTemplate redisTemplate;
+    private final UETRAnomalyService uetrAnomalyService;
+    private final ForecastSettlementService forecastService;
 
     public MCPController(McpRateLimiter rateLimiter,
                          AccessLogService accessLogService,
@@ -50,7 +60,12 @@ public class MCPController {
                          List<MCPTool> tools,
                          RootCauseAnalysisService rootCauseService,
                          SystemicFailureDetector systemicDetector,
-                         McpMetricsService mcpMetricsService) {
+                         McpMetricsService mcpMetricsService,
+                         ElasticsearchLogFetcher logFetcher,
+                         PaymentTimelineReconstructor timelineReconstructor,
+                         StringRedisTemplate redisTemplate,
+                         UETRAnomalyService uetrAnomalyService,
+                         ForecastSettlementService forecastService) {
         this.rateLimiter = rateLimiter;
         this.accessLogService = accessLogService;
         this.llmClient = llmClient;
@@ -58,6 +73,11 @@ public class MCPController {
         this.rootCauseService = rootCauseService;
         this.systemicDetector = systemicDetector;
         this.mcpMetricsService = mcpMetricsService;
+        this.logFetcher = logFetcher;
+        this.timelineReconstructor = timelineReconstructor;
+        this.redisTemplate = redisTemplate;
+        this.uetrAnomalyService = uetrAnomalyService;
+        this.forecastService = forecastService;
     }
 
     /**
@@ -117,20 +137,61 @@ public class MCPController {
 
     @GetMapping("/payments/{paymentId}/timeline")
     public ResponseEntity<?> timeline(@PathVariable String paymentId, @AuthenticationPrincipal Jwt jwt) {
-        return guarded(paymentId, jwt, "/mcp/payments/{paymentId}/timeline",
-                Map.of("paymentId", paymentId, "timeline", "audit-source"));
+        String subject = subject(jwt);
+        if (!rateLimiter.allow(subject)) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(Map.of("message", "Rate limit exceeded"));
+        }
+        accessLogService.log(paymentId, subject, "/mcp/payments/{paymentId}/timeline");
+        var logs = logFetcher.fetchLogsForPayment(paymentId);
+        var timeline = timelineReconstructor.reconstruct(paymentId, logs);
+        return ResponseEntity.ok(timeline);
     }
 
     @GetMapping("/payments/{paymentId}/risk")
     public ResponseEntity<?> risk(@PathVariable String paymentId, @AuthenticationPrincipal Jwt jwt) {
-        return guarded(paymentId, jwt, "/mcp/payments/{paymentId}/risk",
-                Map.of("paymentId", paymentId, "risk", "redis+mongo-source"));
+        String subject = subject(jwt);
+        if (!rateLimiter.allow(subject)) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(Map.of("message", "Rate limit exceeded"));
+        }
+        accessLogService.log(paymentId, subject, "/mcp/payments/{paymentId}/risk");
+        // Pull fraud score from Redis cache (written by fraud-scoring service)
+        String fraudJson = redisTemplate.opsForValue().get("fraud:score:" + paymentId);
+        // Pull fraud log entries from ES
+        var fraudLogs = logFetcher.fetchLogsForPayment(paymentId).stream()
+                .filter(e -> "fraud-scoring".equals(e.service()))
+                .toList();
+        var result = new java.util.LinkedHashMap<String, Object>();
+        result.put("paymentId", paymentId);
+        result.put("fraudCacheEntry", fraudJson);
+        result.put("fraudEvents", fraudLogs.stream().map(e -> Map.of(
+                "timestamp", e.timestamp() != null ? e.timestamp() : "",
+                "message", e.message() != null ? e.message() : "",
+                "fraudScore", e.fraudScore() != null ? e.fraudScore() : "",
+                "riskBand", e.riskBand() != null ? e.riskBand() : ""
+        )).toList());
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/payments/{paymentId}/compliance")
     public ResponseEntity<?> compliance(@PathVariable String paymentId, @AuthenticationPrincipal Jwt jwt) {
-        return guarded(paymentId, jwt, "/mcp/payments/{paymentId}/compliance",
-                Map.of("paymentId", paymentId, "compliance", "oracle-source"));
+        String subject = subject(jwt);
+        if (!rateLimiter.allow(subject)) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(Map.of("message", "Rate limit exceeded"));
+        }
+        accessLogService.log(paymentId, subject, "/mcp/payments/{paymentId}/compliance");
+        var amlLogs = logFetcher.fetchLogsForPayment(paymentId).stream()
+                .filter(e -> "aml-compliance".equals(e.service()))
+                .toList();
+        var result = new java.util.LinkedHashMap<String, Object>();
+        result.put("paymentId", paymentId);
+        result.put("amlEvents", amlLogs.stream().map(e -> Map.of(
+                "timestamp", e.timestamp() != null ? e.timestamp() : "",
+                "message", e.message() != null ? e.message() : "",
+                "screeningResult", e.screeningResult() != null ? e.screeningResult() : "",
+                "matchScore", e.matchScore() != null ? e.matchScore() : "",
+                "listHit", e.listHit() != null ? e.listHit() : ""
+        )).toList());
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/metrics/rails")
@@ -194,6 +255,40 @@ public class MCPController {
                 "answer", answer,
                 "provider", llmClient.providerName()
         ));
+    }
+
+    /**
+     * UETR velocity anomaly detection — sliding-window z-score over debtor payment counts.
+     * Example: GET /mcp/anomalies/uetr?windowMinutes=60
+     */
+    @GetMapping("/anomalies/uetr")
+    public ResponseEntity<?> uetrAnomalies(
+            @RequestParam(defaultValue = "60") int windowMinutes,
+            @AuthenticationPrincipal Jwt jwt) {
+        String subject = subject(jwt);
+        if (!rateLimiter.allow(subject)) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(Map.of("message", "Rate limit exceeded"));
+        }
+        accessLogService.log("uetr-anomaly", subject, "/mcp/anomalies/uetr");
+        return ResponseEntity.ok(uetrAnomalyService.detect(windowMinutes));
+    }
+
+    /**
+     * Settlement volume forecasting — exponential smoothing over ES hourly counts.
+     * Example: GET /mcp/forecast/settlement?horizonHours=24
+     */
+    @GetMapping("/forecast/settlement")
+    public ResponseEntity<?> forecastSettlement(
+            @RequestParam(defaultValue = "24") int horizonHours,
+            @AuthenticationPrincipal Jwt jwt) {
+        String subject = subject(jwt);
+        if (!rateLimiter.allow(subject)) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(Map.of("message", "Rate limit exceeded"));
+        }
+        accessLogService.log("settlement-forecast", subject, "/mcp/forecast/settlement");
+        return ResponseEntity.ok(forecastService.forecast(horizonHours));
     }
 
     private ResponseEntity<?> guarded(String paymentId, Jwt jwt, String path, Object payload) {

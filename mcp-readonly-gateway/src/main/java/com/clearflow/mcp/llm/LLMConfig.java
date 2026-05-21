@@ -26,8 +26,20 @@ public class LLMConfig {
     @Value("${clearflow.llm.openrouter.model:meta-llama/llama-3.2-3b-instruct:free}")
     private String openrouterModel;
 
+    @Value("${clearflow.llm.nvidia.api-key:}")
+    private String nvidiaApiKey;
+
+    @Value("${clearflow.llm.nvidia.model:nvidia/nemotron-3-nano-omni-30b-a3b-reasoning}")
+    private String nvidiaModel;
+
+    @Value("${clearflow.llm.nvidia.reasoning-budget:16384}")
+    private int nvidiaReasoningBudget;
+
     @Bean
     public LLMClient llmClient(ObjectMapper objectMapper) {
+        if ("nvidia".equalsIgnoreCase(provider)) {
+            return new NvidiaLLMClient(nvidiaApiKey, nvidiaModel, nvidiaReasoningBudget, objectMapper);
+        }
         if ("openrouter".equalsIgnoreCase(provider)) {
             return new OpenRouterLLMClient(openrouterBaseUrl, openrouterApiKey, openrouterModel, objectMapper);
         }

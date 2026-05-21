@@ -11,7 +11,7 @@ import java.util.Set;
 @Component
 public class IBANValidationProcessor implements Processor {
 
-    private static final Set<String> SUPPORTED_COUNTRIES = Set.of("NL", "DE", "FR", "GB", "US", "ES", "IT", "BE", "CH", "JP", "SG");
+    private static final Set<String> SUPPORTED_COUNTRIES = Set.of("NL", "DE", "FR", "GB", "US", "ES", "IT", "BE", "CH", "JP", "SG", "AT", "AU", "CA", "SE", "NO", "DK", "FI", "PL", "CZ", "HU", "PT", "IE", "LU", "SK", "SI", "HR", "BG", "RO");
     private final StringRedisTemplate redisTemplate;
 
     public IBANValidationProcessor(StringRedisTemplate redisTemplate) {

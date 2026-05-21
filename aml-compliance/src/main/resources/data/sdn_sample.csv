@@ -149,3 +149,86 @@ UID,Name,Type,Programs,Remarks
 1148,LA FAMILIA MICHOACANA,Entity,TCO,AKA: La Familia; LFM; Knights Templar predecessor
 1149,ABDULAZEEZ OMAR,Individual,SDGT,AKA: Abu Khaled Al-Suri; AQAP facilitator
 1150,LAZARUS GROOP,Entity,DPRK3,Deliberate double-typo variant — LAZARUS GROOP vs LAZARUS GROUP
+2001,PUTIN VLADIMIR VLADIMIROVICH,Individual,UKRAINE-EO13662,AKA: Vladimir Putin; V.V. Putin; President of Russia
+2002,LAVROV SERGEI VIKTOROVICH,Individual,UKRAINE-EO13662,AKA: Sergei Lavrov; Sergey Lavrov; Russian Foreign Minister
+2003,PATRUSHEV NIKOLAI PLATONOVICH,Individual,UKRAINE-EO13662,AKA: Nikolai Patrushev; N.P. Patrushev
+2004,SECHIN IGOR IVANOVICH,Individual,UKRAINE-EO13662,AKA: Igor Sechin; Rosneft CEO
+2005,MILLER ALEXEI BORISOVICH,Individual,UKRAINE-EO13662,AKA: Alexei Miller; Aleksei Miller; Gazprom CEO
+2006,ROTENBERG ARKADY ROMANOVICH,Individual,UKRAINE-EO13685,AKA: Arkady Rotenberg; Arkadi Rotenberg
+2007,ROTENBERG BORIS ROMANOVICH,Individual,UKRAINE-EO13685,AKA: Boris Rotenberg
+2008,TIMCHENKO GENNADY NIKOLAEVICH,Individual,UKRAINE-EO13662,AKA: Gennady Timchenko; Gunvor Group
+2009,KOVALTCHUK YURI VALENTINOVICH,Individual,UKRAINE-EO13685,AKA: Yuri Kovalchuk; Kovalchuk Yury; Putin banker
+2010,VOLODIN VYACHESLAV VIKTOROVICH,Individual,UKRAINE-EO13662,AKA: Vyacheslav Volodin; Speaker State Duma
+2011,ABRAMOVICH ROMAN ARKADYEVICH,Individual,UKRAINE-EO13662,AKA: Roman Abramovich; Chelsea FC owner
+2012,DERIPASKA OLEG VLADIMIROVICH,Individual,UKRAINE-EO13662,AKA: Oleg Deripaska; Rusal owner
+2013,VEKSELBERG VIKTOR FELIKSOVICH,Individual,UKRAINE-EO13662,AKA: Viktor Vekselberg; Renova Group
+2014,FRIDMAN MIKHAIL MARATOVICH,Individual,UKRAINE-EO13662,AKA: Mikhail Fridman; Alfa Group founder
+2015,AVEN PETR OLEGOVICH,Individual,UKRAINE-EO13662,AKA: Pyotr Aven; Alfa Bank chairman
+2016,MALOFEEV KONSTANTIN VALEREVICH,Individual,UKRAINE-EO13662,AKA: Konstantin Malofeev; Orthodox oligarch
+2017,PRIGOZHIN EVGENY VICTOROVICH,Individual,UKRAINE-EO13662,AKA: Evgeny Prigozhin; Yevgeny Prigozhin; Wagner founder
+2018,KADYROV RAMZAN AKHMADOVICH,Individual,UKRAINE-EO13662,AKA: Ramzan Kadyrov; Chechen leader
+2019,GERASIMOV VALERY VASILYEVICH,Individual,UKRAINE-EO13662,AKA: Valery Gerasimov; Chief of General Staff Russia
+2020,ZOLOTOV VIKTOR VASILYEVICH,Individual,UKRAINE-EO13662,AKA: Viktor Zolotov; Rosgvardiya head
+2021,NARYSHKIN SERGEI EVGENYEVICH,Individual,UKRAINE-EO13662,AKA: Sergei Naryshkin; SVR director
+2022,BORTNIKOV ALEXANDER VASILYEVICH,Individual,UKRAINE-EO13662,AKA: Alexander Bortnikov; FSB director
+2023,SHOIGU SERGEI KUZHUGETOVICH,Individual,UKRAINE-EO13662,AKA: Sergei Shoigu; Defense Minister Russia
+2024,MISHUSTIN MIKHAIL VLADIMIROVICH,Individual,UKRAINE-EO13662,AKA: Mikhail Mishustin; Russian Prime Minister
+2025,NOVAK ALEXANDER VALENTINOVICH,Individual,UKRAINE-EO13662,AKA: Alexander Novak; Deputy PM Russia energy
+3001,KHAMENEI ALI,Individual,IRAN,AKA: Ali Khamenei; Ayatollah Khamenei; Supreme Leader Iran
+3002,RAISI EBRAHIM,Individual,IRAN,AKA: Ebrahim Raisi; Ibrahim Raisi; Iranian President
+3003,SOLEIMANI QASSEM,Individual,SDGT|IFSR,AKA: Qasem Soleimani; Qassim Suleimani; IRGC-QF commander
+3004,GHALIBAF MOHAMMAD BAQER,Individual,IRAN,AKA: Mohammad Bagher Ghalibaf; Iranian Parliament Speaker
+3005,HAJIZADEH AMIR ALI,Individual,SDGT|IFSR,AKA: Amirali Hajizadeh; IRGC Aerospace commander
+3006,SALAMI HOSSEIN,Individual,SDGT|IFSR,AKA: Hossein Salami; IRGC commander in chief
+3007,ESMAIL QAANI,Individual,SDGT|IFSR,AKA: Ismail Qaani; Esmaeil Qa'ani; IRGC-QF successor
+3008,JAFARI MOHAMMAD ALI,Individual,SDGT|IFSR,AKA: Mohammad Ali Jafari; former IRGC chief
+3009,VELAYATI ALI AKBAR,Individual,IRAN,AKA: Ali Akbar Velayati; Khamenei foreign advisor
+3010,SHAMKHANI ALI,Individual,IRAN,AKA: Ali Shamkhani; Supreme National Security Council
+3011,REZAEI MOHSEN,Individual,IRAN,AKA: Mohsen Rezai; IRGC former chief
+3012,ZARIF MOHAMMAD JAVAD,Individual,IRAN,AKA: Mohammad Javad Zarif; Javad Zarif; former FM Iran
+3013,ZANGENEH BIJAN NAMDAR,Individual,IRAN,AKA: Bijan Zanganeh; Oil Minister Iran
+3014,AGHAZADEH GHOLAM REZA,Individual,IFSR|NPWMD,AKA: Gholamreza Aghazadeh; former nuclear chief Iran
+3015,AHMADINEJAD MAHMOUD,Individual,IRAN,AKA: Mahmoud Ahmadinejad; former President Iran
+4001,KIM JONG UN,Individual,DPRK3,AKA: Kim Jong-un; Marshal Kim; Supreme Leader DPRK
+4002,KIM YO JONG,Individual,DPRK3,AKA: Kim Yo-jong; Kim Jong Un sister; DPRK propaganda chief
+4003,CHOE RYONG HAE,Individual,DPRK3,AKA: Choe Ryong-hae; DPRK State Affairs Commission
+4004,KWON YONG JIN,Individual,DPRK3,AKA: Kwon Jong-gun; DPRK foreign ministry official
+4005,JO CHOL SOO,Individual,DPRK3,AKA: Jo Chol-su; DPRK missile program
+4006,JANG KWANG IL,Individual,DPRK3,AKA: Jang Kwang-il; Korea Taesong Trading
+4007,KIM SONG CHOL,Individual,DPRK3,AKA: Kim Song-chol; Lazarus Group operator
+4008,PARK JIN HYOK,Individual,DPRK3,AKA: Park Jin Hyok; Lazarus Group hacker; Jin Hyok Park
+4009,JON CHANG HYOK,Individual,DPRK3,AKA: Jon Chang-hyok; Andariel Group operator
+4010,KIM IL,Individual,DPRK3,AKA: Kim Il; Bluenoroff operator; DPRK cyber unit
+5001,MADURO NICOLAS,Individual,VENEZUELA,AKA: Nicolas Maduro Moros; Venezuelan President
+5002,CABELLO RONDON DIOSDADO,Individual,VENEZUELA,AKA: Diosdado Cabello; PDVSA chairman
+5003,EL AISSAMI TARECK ZAIDAN,Individual,VENEZUELA|TCO,AKA: Tareck El Aissami; Venezuelan VP; drug trafficking
+5004,MIRABAL BUSTAMANTE NESTOR LUIS,Individual,VENEZUELA,AKA: Nestor Mirabal; CLAP food program corruption
+5005,FLORES DE MADURO CILIA,Individual,VENEZUELA,AKA: Cilia Flores; First Lady Venezuela
+5006,RIVERO JOSE FELIX,Individual,VENEZUELA|TCO,AKA: Jose Felix Rivero; Venezuelan armed forces
+5007,RAMIREZ JOSE DOMINGO,Individual,TCO|VENEZUELA,AKA: Domingo Ramirez; drug trafficking Venezuela
+5008,BERNAL FREDDY ALIRIO,Individual,VENEZUELA,AKA: Freddy Bernal; CLAP food system Venezuela
+6001,MIN AUNG HLAING,Individual,BURMA,AKA: Senior General Min Aung Hlaing; Myanmar junta leader
+6002,SOE WIN,Individual,BURMA,AKA: General Soe Win; Myanmar Deputy Commander
+6003,MYANMA OIL AND GAS ENTERPRISE,Entity,BURMA,AKA: MOGE; Myanmar Oil Gas Enterprise
+6004,MYANMAR ECONOMIC CORPORATION,Entity,BURMA,AKA: MEC; Tatmadaw holding company
+6005,MYANMAR ECONOMIC HOLDINGS LIMITED,Entity,BURMA,AKA: MEHL; Myanmar Economic Holdings
+7001,LUKASHENKO ALEXANDER GRIGORYEVICH,Individual,BELARUS,AKA: Alexander Lukashenko; Belarusian President; Batka
+7002,LUKASHENKO VIKTOR ALEXANDROVICH,Individual,BELARUS,AKA: Viktor Lukashenko; son of Alexander Lukashenko
+7003,BELARUSIAN POTASH COMPANY,Entity,BELARUS,AKA: BPC; Belaruskali; Belarusian potash exporter
+7004,BELTA STATE NEWS AGENCY,Entity,BELARUS,AKA: BelTA; Belarusian Telegraph Agency
+7005,BELNEFTEKHIM,Entity,BELARUS,AKA: Belarusneft; Belarusian Oil and Chemical concern
+8001,TORRES JORGE LUIS,Individual,CUBA,AKA: Jorge Luis Torres Cuba; PCC Central Committee
+8002,RODRIGUEZ GIL MARCO ANTONIO,Individual,CUBA,AKA: Marco Antonio Rodriguez; Cuban intelligence
+8003,CUBAMETALES,Entity,CUBA,AKA: Cuba Metals; Empresa Cubana de Metales
+8004,CIMEX CORPORATION,Entity,CUBA,AKA: Cimex SA; Cuban retail monopoly
+8005,FINCIMEX,Entity,CUBA,AKA: Financiera Cimex; Cuban financial services company
+9001,GUZMAN LOERA JOAQUIN ARCHIVALDO,Individual,TCO,AKA: El Chapo; Shorty; Joaquin El Chapo Guzman
+9002,ESCOBAR GAVIRIA PABLO EMILIO,Individual,TCO,AKA: Pablo Escobar; El Patron; King of Cocaine (deceased)
+9003,ZAMBADA GARCIA ISMAEL MARIO,Individual,TCO,AKA: El Mayo; Ismael Zambada; Sinaloa Cartel leader
+9004,CARO QUINTERO RAFAEL,Individual,TCO,AKA: Rafael Caro Quintero; RCQ; Narco of narcos
+9005,MENESES CANTILLO HENRY DE JESUS,Individual,TCO,AKA: Henry Meneses; Colombian trafficking
+9006,FUENTES AMADO JUAREZ,Individual,TCO,AKA: Lord of the Skies; Amado Carrillo Fuentes
+9007,ARELLANO FELIX BENJAMIN,Individual,TCO,AKA: Benjamin Arellano Felix; Tijuana Cartel leader
+9008,MENCHO NEMESIO OSEGUERA CERVANTES,Individual,TCO,AKA: El Mencho; CJNG leader
+9009,MONTOYA SANCHEZ DIEGO LEON,Individual,TCO,AKA: Don Diego; Colombian narco commander
+9010,GAVIRIA BERRÍO DAIRO ANTONIO,Individual,TCO,AKA: Otoniel; Clan del Golfo leader; captured 2021

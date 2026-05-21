@@ -42,7 +42,9 @@ public class FuzzyScreeningEngine {
             }
             if (!inputFirst.isBlank() && !sanctionedFirst.isBlank() && soundex.encode(inputFirst).equals(soundex.encode(sanctionedFirst))) {
                 double score = jaroWinkler.apply(normalizedInput, canonicalize(normalize(sanctionedName)));
-                return new ScreeningResult(ScreeningResult.MatchType.SOUNDEX, score, sanctionedName, "SDN", inputName, normalizedInput);
+                if (score >= threshold) {
+                    return new ScreeningResult(ScreeningResult.MatchType.SOUNDEX, score, sanctionedName, "SDN", inputName, normalizedInput);
+                }
             }
         }
 

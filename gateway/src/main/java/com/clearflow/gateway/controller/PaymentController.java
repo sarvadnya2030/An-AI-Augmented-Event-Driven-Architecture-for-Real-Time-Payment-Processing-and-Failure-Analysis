@@ -33,7 +33,9 @@ import com.clearflow.gateway.service.RateLimitingFilter;
 import com.clearflow.gateway.status.PaymentStatusService;
 
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.util.concurrent.atomic.AtomicInteger;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -49,7 +51,9 @@ import reactor.core.scheduler.Schedulers;
 public class PaymentController {
 
     private static final Logger log = LoggerFactory.getLogger(PaymentController.class);
+    private static final int MAX_INFLIGHT = 1_000;
 
+    private final AtomicInteger inflight = new AtomicInteger(0);
     private final IdempotencyService idempotencyService;
     private final RateLimitingFilter rateLimitingFilter;
     private final ActiveMQPublisher activeMQPublisher;
@@ -72,6 +76,9 @@ public class PaymentController {
         this.kafkaEventPublisher = kafkaEventPublisher;
         this.paymentStatusService = paymentStatusService;
         this.meterRegistry = meterRegistry;
+        Gauge.builder("clearflow_gateway_inflight", inflight, AtomicInteger::get)
+                .description("In-flight payment submissions at the gateway")
+                .register(meterRegistry);
     }
 
     @PostMapping
@@ -83,7 +90,17 @@ public class PaymentController {
     @ApiResponse(responseCode = "401", description = "JWT missing, invalid, or expired")
     public Mono<ResponseEntity<PaymentResponse>> submitPayment(@Valid @RequestBody PaymentRequest request,
                                                                @AuthenticationPrincipal Jwt jwt,
-                                                               @RequestHeader(value = "X-Correlation-Id", required = false) String incomingCorrelationId) {
+                                                               @RequestHeader(value = "X-Correlation-Id", required = false) String incomingCorrelationId,
+                                                               @RequestHeader(value = "X-Client-Tier", required = false) String clientTier) {
+        // Bulkhead: shed load when too many requests are in-flight
+        if (inflight.get() >= MAX_INFLIGHT) {
+            return Mono.just(ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .header("Retry-After", "1")
+                    .body(new PaymentResponse(null, null, PaymentStatus.REJECTED,
+                            Instant.now(), null, "Service overloaded — retry in 1 second", Map.of())));
+        }
+        inflight.incrementAndGet();
+
         String clientId = jwt != null && jwt.getSubject() != null ? jwt.getSubject() : "anonymous";
         String paymentId = UUID.randomUUID().toString();
         String correlationId = incomingCorrelationId != null ? incomingCorrelationId : UUID.randomUUID().toString();
@@ -102,7 +119,7 @@ public class PaymentController {
                         return Mono.just(ResponseEntity.status(HttpStatus.CONFLICT).body(idempotencyResult.cachedResponse()));
                     }
 
-                    return rateLimitingFilter.checkLimit(clientId)
+                    return rateLimitingFilter.checkLimit(clientId, clientTier)
                             .flatMap(rate -> {
                                 if (!rate.allowed()) {
                                     return Mono.just(ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
@@ -172,6 +189,7 @@ public class PaymentController {
                             });
                 })
                 .doFinally(signal -> {
+                    inflight.decrementAndGet();
                     MDC.remove("clientId");
                     MDC.remove("paymentId");
                     MDC.remove("correlationId");
@@ -197,6 +215,10 @@ public class PaymentController {
                 request.uetr(),
                 MaskedIbanSerializer.mask(request.debtor().iban()),
                 MaskedIbanSerializer.mask(request.creditor().iban()),
+                request.debtor().name(),
+                request.creditor().name(),
+                request.debtor().bic(),
+                request.creditor().bic(),
                 request.amount(),
                 request.currency(),
                 request.debtor().country(),

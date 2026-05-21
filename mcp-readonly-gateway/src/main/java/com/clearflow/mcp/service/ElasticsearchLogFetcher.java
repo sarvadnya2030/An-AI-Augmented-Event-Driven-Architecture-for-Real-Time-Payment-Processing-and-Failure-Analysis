@@ -107,7 +107,7 @@ public class ElasticsearchLogFetcher {
      * Returns a map of fieldValue → count, sorted by count descending.
      */
     public Map<String, Long> countByEventType(String service, int minutes) {
-        String query = buildAggregationQuery(service, "eventType.keyword", minutes);
+        String query = buildAggregationQuery(service, "eventType", minutes);
         return executeAggregation(query, "eventType");
     }
 
@@ -116,7 +116,7 @@ public class ElasticsearchLogFetcher {
      */
     public Map<String, Long> countAlertsByService(int minutes) {
         String query = buildAlertAggregationQuery(minutes);
-        return executeAggregation(query, "service.keyword");
+        return executeAggregation(query, "service");
     }
 
     /**
@@ -182,13 +182,13 @@ public class ElasticsearchLogFetcher {
                 { "range": { "@timestamp": { "gte": "now-%dm" } } }
                 """.formatted(minutes));
         if (riskBand != null && !riskBand.isBlank())
-            filters.append(", { \"term\": { \"riskBand.keyword\": \"" + riskBand + "\" } }");
+            filters.append(", { \"term\": { \"riskBand\": \"" + riskBand + "\" } }");
         if (fraudPattern != null && !fraudPattern.isBlank())
-            filters.append(", { \"term\": { \"fraudPattern.keyword\": \"" + fraudPattern + "\" } }");
+            filters.append(", { \"term\": { \"fraudPattern\": \"" + fraudPattern + "\" } }");
         if (finalStatus != null && !finalStatus.isBlank())
-            filters.append(", { \"term\": { \"finalStatus.keyword\": \"" + finalStatus + "\" } }");
+            filters.append(", { \"term\": { \"finalStatus\": \"" + finalStatus + "\" } }");
         if (creditorCountry != null && !creditorCountry.isBlank())
-            filters.append(", { \"term\": { \"creditorCountry.keyword\": \"" + creditorCountry + "\" } }");
+            filters.append(", { \"term\": { \"creditorCountry\": \"" + creditorCountry + "\" } }");
 
         String query = """
                 {
@@ -234,7 +234,7 @@ public class ElasticsearchLogFetcher {
                   "query": {
                     "bool": {
                       "filter": [
-                        { "term": { "alertLevel.keyword": "HIGH" } }
+                        { "term": { "alertLevel": "HIGH" } }
                       ]
                     }
                   },
@@ -267,8 +267,8 @@ public class ElasticsearchLogFetcher {
     public Map<String, Object> paymentMetrics(int minutes) {
         Map<String, Object> metrics = new java.util.LinkedHashMap<>();
         Map<String, Long> byEvent   = countByEventType(null, minutes);
-        Map<String, Long> byRisk    = countByField("riskBand.keyword", minutes);
-        Map<String, Long> byPattern = countByField("fraudPattern.keyword", minutes);
+        Map<String, Long> byRisk    = countByField("riskBand", minutes);
+        Map<String, Long> byPattern = countByField("fraudPattern", minutes);
         Map<String, Long> alerts    = countAlertsByService(minutes);
 
         long submitted  = byEvent.getOrDefault("PAYMENT_SUBMITTED",  0L);
@@ -304,16 +304,16 @@ public class ElasticsearchLogFetcher {
                   "query": {
                     "bool": {
                       "filter": [
-                        { "term":  { "eventType.keyword": "%s" } },
+                        { "term":  { "eventType": "%s" } },
                         { "range": { "@timestamp": { "gte": "now-%dm" } } }
                       ]
                     }
                   },
                   "size": 0,
                   "aggs": {
-                    "by_service": { "terms": { "field": "service.keyword", "size": 10 } },
-                    "by_country": { "terms": { "field": "creditorCountry.keyword", "size": 10 } },
-                    "by_pattern": { "terms": { "field": "fraudPattern.keyword", "size": 10 } },
+                    "by_service": { "terms": { "field": "service", "size": 10 } },
+                    "by_country": { "terms": { "field": "creditorCountry", "size": 10 } },
+                    "by_pattern": { "terms": { "field": "fraudPattern", "size": 10 } },
                     "total_amount": { "sum": { "field": "amount" } }
                   }
                 }
@@ -355,13 +355,13 @@ public class ElasticsearchLogFetcher {
     // ── Query builders ────────────────────────────────────────────────────────
 
     private String buildPaymentQuery(String paymentId, int size) {
-        // Multi-index term query on paymentId.keyword, sorted by timestamp
+        // Multi-index term query on paymentId, sorted by timestamp
         return """
                 {
                   "query": {
                     "bool": {
                       "filter": [
-                        { "term": { "paymentId.keyword": "%s" } }
+                        { "term": { "paymentId": "%s" } }
                       ]
                     }
                   },
@@ -377,7 +377,7 @@ public class ElasticsearchLogFetcher {
                   "query": {
                     "bool": {
                       "filter": [
-                        { "term":  { "service.keyword": "%s" } },
+                        { "term":  { "service": "%s" } },
                         { "range": { "@timestamp": { "gte": "now-%dm" } } }
                       ]
                     }
@@ -391,7 +391,7 @@ public class ElasticsearchLogFetcher {
     private String buildAggregationQuery(String service, String aggField, int minutes) {
         String serviceFilter = service != null
                 ? """
-                  { "term": { "service.keyword": "%s" } },
+                  { "term": { "service": "%s" } },
                   """.formatted(service)
                 : "";
         return """
@@ -420,7 +420,7 @@ public class ElasticsearchLogFetcher {
                   "query": {
                     "bool": {
                       "filter": [
-                        { "term":  { "alertLevel.keyword": "HIGH" } },
+                        { "term":  { "alertLevel": "HIGH" } },
                         { "range": { "@timestamp": { "gte": "now-%dm" } } }
                       ]
                     }
@@ -428,7 +428,7 @@ public class ElasticsearchLogFetcher {
                   "size": 0,
                   "aggs": {
                     "by_field": {
-                      "terms": { "field": "service.keyword", "size": 20 }
+                      "terms": { "field": "service", "size": 20 }
                     }
                   }
                 }

@@ -1,6 +1,6 @@
 package com.clearflow.audit.domain;
 
-import org.springframework.data.annotation.ReadOnlyProperty;
+import org.springframework.data.cassandra.core.mapping.Column;
 import org.springframework.data.cassandra.core.mapping.PrimaryKey;
 import org.springframework.data.cassandra.core.mapping.Table;
 
@@ -11,14 +11,21 @@ public class AuditRecord {
     @PrimaryKey
     private AuditRecordKey key;
     private UUID id;
+    @Column("event_type")
     private String eventType;
+    @Column("event_data")
     private String eventData;
+    @Column("correlation_id")
     private String correlationId;
+    @Column("service_source")
     private String serviceSource;
+    @Column("previous_hash")
     private String previousHash;
+    @Column("current_hash")
     private String currentHash;
+    @Column("block_height")
     private long blockHeight;
-    @ReadOnlyProperty
+    @Column("retention_years")
     private int retentionYears;
 
     public AuditRecordKey getKey() { return key; }

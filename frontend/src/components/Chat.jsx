@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { mcpApi } from '../api/mcpApi.js';
+import { fetchChat } from '../api/clearflow.js';
 
 const SUGGESTIONS = [
   'What rails are available for a EUR payment over €1M?',
@@ -37,16 +37,16 @@ export default function Chat() {
     setError(null);
 
     const userMsg = { role: 'user', content: q };
-    const history = messages.map((m) => ({ role: m.role === 'ClearFlow AI' ? 'assistant' : m.role, content: m.content }));
+    const history = messages.map((m) => ({ role: m.role, content: m.content }));
 
     setMessages((prev) => [...prev, userMsg]);
     setLoading(true);
 
     try {
-      const res = await mcpApi.chat(q, paymentId, history);
+      const res = await fetchChat({ question: q, paymentId: paymentId || null, history });
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: res.answer, provider: res.provider },
+        { role: 'assistant', content: res?.answer || 'No response', provider: res?.provider },
       ]);
     } catch (e) {
       setError(e.message === 'UNAUTHORIZED' ? 'Invalid token — sign out and re-enter your JWT.' : e.message);
@@ -86,7 +86,7 @@ export default function Chat() {
           <p className="suggestions-title">Suggested questions</p>
           <div className="suggestions-grid">
             {SUGGESTIONS.map((s) => (
-              <button key={s} className="suggestion-chip" onClick={() => send(s)}>
+              <button key={s} className="suggestion-chip" onClick={() => send(s)} disabled={loading}>
                 {s}
               </button>
             ))}

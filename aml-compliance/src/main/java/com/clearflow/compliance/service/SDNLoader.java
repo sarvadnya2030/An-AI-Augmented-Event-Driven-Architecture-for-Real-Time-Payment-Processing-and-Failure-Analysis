@@ -31,27 +31,33 @@ public class SDNLoader {
             List<String> names = new ArrayList<>();
             try (CSVReader reader = new CSVReader(new InputStreamReader(new ClassPathResource("data/sdn_sample.csv").getInputStream()))) {
                 String[] row;
-                reader.readNext();
+                reader.readNext(); // skip header
                 while ((row = reader.readNext()) != null) {
-                    String uid = row[0];
-                    String name = row[1];
-                    String type = row[2];
+                    if (row.length < 5) continue;
+                    String uid      = row[0].trim();
+                    String name     = row[1].trim();
+                    String type     = row[2].trim();
                     List<String> programs = Arrays.asList(row[3].split("\\|"));
-                    String remarks = row[4];
+                    String remarks  = row[4].trim();
                     List<String> variants = new ArrayList<>();
                     if (remarks.contains("AKA:")) {
                         String aka = remarks.substring(remarks.indexOf("AKA:") + 4).trim();
-                        variants.addAll(Arrays.stream(aka.split(";")).map(String::trim).toList());
+                        Arrays.stream(aka.split(";")).map(String::trim).filter(s -> !s.isBlank()).forEach(variants::add);
                     }
                     SDNEntry entry = new SDNEntry(uid, name, type, programs, remarks, variants, "UNKNOWN");
                     loaded.add(entry);
                     names.add(name);
                     names.addAll(variants);
                 }
-            } catch (Exception ignored) {
+            } catch (Exception ex) {
+                log.error("SDNLoader: failed to parse sdn_sample.csv — {}", ex.getMessage(), ex);
             }
             this.sdnEntries = loaded;
-            this.allNames = names;
+            this.allNames   = names;
+            long individuals = loaded.stream().filter(e -> "Individual".equalsIgnoreCase(e.type())).count();
+            long entities    = loaded.stream().filter(e -> "Entity".equalsIgnoreCase(e.type())).count();
+            log.info("SDN list loaded: {} entries ({} individuals, {} entities), {} name variants total",
+                    loaded.size(), individuals, entities, names.size());
         } finally {
             lock.writeLock().unlock();
         }

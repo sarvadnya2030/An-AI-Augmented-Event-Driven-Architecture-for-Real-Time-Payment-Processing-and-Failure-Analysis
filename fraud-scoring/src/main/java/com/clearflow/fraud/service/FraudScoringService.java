@@ -48,10 +48,16 @@ public class FraudScoringService {
         double[] features = featureEngineeringService.extractFeatures(request);
         List<String> featureNames = featureEngineeringService.featureNames();
 
-        LightGBMStubClient.ModelScoreResponse modelResponse = lightGBMStubClient
-                .predict(features, Map.of("paymentId", request.paymentId(), "currency", request.currency()))
-                .blockOptional()
-                .orElse(null);
+        LightGBMStubClient.ModelScoreResponse modelResponse;
+        try {
+            modelResponse = lightGBMStubClient
+                    .predict(features, Map.of("paymentId", request.paymentId(), "currency", request.currency()))
+                    .blockOptional()
+                    .orElse(null);
+        } catch (Exception e) {
+            log.debug("Model server unavailable, using heuristic fallback for paymentId={}", request.paymentId());
+            modelResponse = null;
+        }
 
         FraudResponse response;
         if (modelResponse == null || "fallback-cb".equals(modelResponse.modelVersion())) {

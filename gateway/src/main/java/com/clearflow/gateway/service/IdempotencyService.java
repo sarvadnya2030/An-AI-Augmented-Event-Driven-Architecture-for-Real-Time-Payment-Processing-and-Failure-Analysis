@@ -30,21 +30,24 @@ public class IdempotencyService {
         String signature = request.instructionId() + "|" + request.amount() + "|" + request.debtor().iban();
         String key = "idempotency:" + DigestUtils.sha256Hex(signature);
         return stringRedis.opsForValue().setIfAbsent(key, paymentId, Duration.ofHours(24))
+                .timeout(Duration.ofSeconds(5))
                 .flatMap(inserted -> {
                     if (Boolean.TRUE.equals(inserted)) {
                         return Mono.just(IdempotencyResult.accepted());
                     }
                     return stringRedis.opsForValue().get(key)
-                            .flatMap(existingPaymentId -> responseRedis.opsForValue().get("payment:response:" + existingPaymentId))
-                            .switchIfEmpty(Mono.fromSupplier(() -> new PaymentResponse(
-                                    paymentId,
-                                    correlationId,
-                                    PaymentStatus.DUPLICATE,
-                                    Instant.now(),
-                                    "UNKNOWN",
-                                    "Duplicate request detected by idempotency key",
-                                    Map.of("status", "/api/v1/payments/" + paymentId + "/status")
-                            )))
+                            .timeout(Duration.ofSeconds(5))
+                            .flatMap(existingPaymentId -> responseRedis.opsForValue().get("payment:response:" + existingPaymentId)
+                                    .timeout(Duration.ofSeconds(5))
+                                    .switchIfEmpty(Mono.fromSupplier(() -> new PaymentResponse(
+                                            existingPaymentId,
+                                            correlationId,
+                                            PaymentStatus.DUPLICATE,
+                                            Instant.now(),
+                                            "UNKNOWN",
+                                            "Duplicate request detected by idempotency key",
+                                            Map.of("status", "/api/v1/payments/" + existingPaymentId + "/status")
+                                    ))))
                             .map(IdempotencyResult::duplicate);
                 });
     }

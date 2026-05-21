@@ -47,7 +47,10 @@ public class SettlementService {
         }
 
         BigDecimal amount = new BigDecimal(String.valueOf(event.getOrDefault("amount", "0")));
-        String currency = String.valueOf(event.getOrDefault("currency", "EUR"));
+        // debtorCurrency is the canonical field from EnrichedPaymentEvent; fall back gracefully
+        String currency = event.containsKey("debtorCurrency")
+                ? String.valueOf(event.get("debtorCurrency"))
+                : String.valueOf(event.getOrDefault("currency", "EUR"));
         String correlationId = String.valueOf(event.getOrDefault("correlationId", ""));
 
         LedgerEntry debit = new LedgerEntry();
@@ -80,7 +83,12 @@ public class SettlementService {
 
         SettlementRecord record = new SettlementRecord();
         record.setPaymentId(paymentId);
-        record.setRail(String.valueOf(event.getOrDefault("railSelected", "SWIFT_MT103")));
+        // Prefer routing-selected rail (from RoutingKafkaConsumer augmentation) over enrichment preferredRail
+        String rail = event.containsKey("selectedRail")
+                ? String.valueOf(event.get("selectedRail"))
+                : String.valueOf(event.getOrDefault("preferredRail",
+                  event.getOrDefault("railSelected", "SWIFT_MT103")));
+        record.setRail(rail);
         record.setStatus("SETTLED");
         record.setSettledAt(Instant.now());
         record.setDebtorIbanMasked(MaskedIbanSerializer.mask(String.valueOf(event.getOrDefault("debtorIban", ""))));
