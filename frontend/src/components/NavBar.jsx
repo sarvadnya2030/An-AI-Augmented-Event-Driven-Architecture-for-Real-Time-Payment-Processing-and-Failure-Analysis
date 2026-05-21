@@ -4,7 +4,6 @@ const LINKS = [
   { id: 'dashboard', label: '📊 Dashboard' },
   { id: 'flow',      label: '🚀 Live Payments + Root Cause' },
   { id: 'graphify',  label: '🔗 Graphify' },
-  { id: 'analytics', label: '📈 Analytics (Kibana/Grafana/Jaeger)' },
   { id: 'search',    label: '🤖 AI Root Cause' },
   { id: 'chat',      label: '💬 AI Chat' },
 ];
