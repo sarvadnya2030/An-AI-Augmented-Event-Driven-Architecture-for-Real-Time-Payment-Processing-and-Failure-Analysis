@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Background monitoring service that continuously watches for cascade failures.
- * Runs periodic checks and broadcasts alerts to connected clients.
+ * Runs periodic checks, broadcasts SSE alerts, and integrates with multi-channel alerting (Slack, PagerDuty).
  */
 @Service
 public class CascadeMonitoringService {
@@ -21,13 +21,16 @@ public class CascadeMonitoringService {
 
     private final CascadeFailureDetector detector;
     private final CascadeDetectionController controller;
+    private final CascadeAlertingService alertingService;
     private final Set<String> alertedCascades = ConcurrentHashMap.newKeySet();
 
     public CascadeMonitoringService(
         CascadeFailureDetector detector,
-        CascadeDetectionController controller) {
+        CascadeDetectionController controller,
+        CascadeAlertingService alertingService) {
         this.detector = detector;
         this.controller = controller;
+        this.alertingService = alertingService;
     }
 
     /**
@@ -52,6 +55,9 @@ public class CascadeMonitoringService {
 
                     // Broadcast to connected SSE clients
                     controller.broadcastCascadeAlert(cascade);
+
+                    // Send multi-channel alerts (Slack, PagerDuty, email)
+                    alertingService.alertCascadeDetected(cascade);
 
                     // Log alert message
                     String alert = detector.generateAlert(cascade);

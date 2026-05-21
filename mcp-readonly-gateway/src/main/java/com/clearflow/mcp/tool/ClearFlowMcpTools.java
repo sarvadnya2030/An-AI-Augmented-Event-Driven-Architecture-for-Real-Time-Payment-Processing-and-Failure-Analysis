@@ -5,6 +5,7 @@ import com.clearflow.mcp.llm.LLMMessage;
 import com.clearflow.mcp.service.CodeGraphService;
 import com.clearflow.mcp.service.CascadeFailureDetector;
 import com.clearflow.mcp.service.CascadeFailureDetector.CascadePattern;
+import com.clearflow.mcp.service.PredictiveCascadeSimulator;
 import com.clearflow.mcp.service.ElasticsearchLogFetcher;
 import com.clearflow.mcp.service.ElasticsearchLogFetcher.LogEntry;
 import com.clearflow.mcp.service.ForecastSettlementService;
@@ -56,6 +57,7 @@ public class ClearFlowMcpTools {
     private final UETRAnomalyService uetrAnomalyService;
     private final ForecastSettlementService forecastSettlementService;
     private final CascadeFailureDetector cascadeDetector;
+    private final PredictiveCascadeSimulator predictiveSimulator;
 
     public ClearFlowMcpTools(RootCauseAnalysisService rootCauseService,
                               ElasticsearchLogFetcher logFetcher,
@@ -67,7 +69,8 @@ public class ClearFlowMcpTools {
                               ObjectMapper objectMapper,
                               UETRAnomalyService uetrAnomalyService,
                               ForecastSettlementService forecastSettlementService,
-                              CascadeFailureDetector cascadeDetector) {
+                              CascadeFailureDetector cascadeDetector,
+                              PredictiveCascadeSimulator predictiveSimulator) {
         this.rootCauseService = rootCauseService;
         this.logFetcher = logFetcher;
         this.reconstructor = reconstructor;
@@ -79,6 +82,7 @@ public class ClearFlowMcpTools {
         this.uetrAnomalyService = uetrAnomalyService;
         this.forecastSettlementService = forecastSettlementService;
         this.cascadeDetector = cascadeDetector;
+        this.predictiveSimulator = predictiveSimulator;
     }
 
     // ── Tool 1: Root cause analysis ───────────────────────────────────────────
@@ -778,6 +782,45 @@ public class ClearFlowMcpTools {
         });
 
         return sb.toString();
+    }
+
+    // ── Tool 12: Predictive cascade simulation ────────────────────────────
+
+    @Tool(description = """
+            Simulate cascade impact if a specific service fails.
+            Answers: 'If service X fails for Y minutes, what happens?'
+
+            Services: 0=gateway, 1=fraud-scoring, 2=validation-enrichment,
+                     3=aml-compliance, 4=routing-execution, 5=settlement, 6=audit
+
+            Returns: affected_payments, affected_services, latency_increase_percent,
+                     throughput_drop_percent, estimated_MTTR, cost_impact, mitigation
+
+            Use for: disaster planning, SLA forecasting, failover testing,
+            capacity planning decisions.
+            """)
+    public String simulateServiceFailure(int serviceIndex, int durationSeconds) {
+        try {
+            PredictiveCascadeSimulator.SimulationResult result =
+                predictiveSimulator.simulateServiceFailure(serviceIndex, durationSeconds);
+
+            int mttr = predictiveSimulator.estimateMTTR(serviceIndex);
+            double costImpact = predictiveSimulator.estimateCostImpact(serviceIndex, durationSeconds);
+
+            StringBuilder sb = new StringBuilder();
+            sb.append(String.format("PREDICTIVE CASCADE ANALYSIS: %s failure (%ds)\n\n", result.failedService(), durationSeconds));
+            sb.append(String.format("Affected Payments: %d\n", result.affectedPayments()));
+            sb.append(String.format("Downstream Services: %s\n", String.join(", ", result.affectedServices())));
+            sb.append(String.format("P99 Latency Increase: +%.1f%%\n", result.estimatedLatencyIncrease()));
+            sb.append(String.format("Throughput Drop: %.1f%%\n", result.estimatedThroughputDrop()));
+            sb.append(String.format("Estimated MTTR: %d minutes\n", mttr));
+            sb.append(String.format("Cost Impact: $%.2f\n\n", costImpact));
+            sb.append(String.format("RECOMMENDED ACTION:\n%s\n", result.recommendedMitigation()));
+
+            return sb.toString();
+        } catch (Exception ex) {
+            return "Error simulating cascade: " + ex.getMessage();
+        }
     }
 
     private String buildCascadeEventSummary(List<LogEntry> cascadeEvents) {
